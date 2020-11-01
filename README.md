@@ -13,3 +13,8 @@ The ST Link Driver may be needed to upload the program to the Nucleo-F413ZH. Thi
 - Nripesh Manandhar
 - Nikilesh Subramaniam
 - Phillip Phan
+
+## Project Structure
+The `include` and `src` directories are split into `CellNode`, `MainNode`, and `Shared` subdirectories. The `CellNode` subdirectories will only include .cpp and .h files specific to the Cell Node, while the `MainNode` subdirectories will only include .cpp and .h files specific to the Main Node. The `Shared` subdirectories will include .cpp and .h files that are common between the two boards.
+
+All testing that can be tested on both boards will be located in `src/Shared/test_main.cpp`.
