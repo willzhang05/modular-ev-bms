@@ -1,3 +1,5 @@
+# Adapted from https://github.com/KKoovalsky/PlatformIO-Helpers
+
 from os import path
 import sys
 

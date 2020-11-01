@@ -1,3 +1,5 @@
+# Taken from https://github.com/KKoovalsky/PlatformIO-Helpers
+
 import os.path
 import sys
 from pathlib import Path
