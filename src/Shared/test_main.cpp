@@ -3,18 +3,24 @@
 #include <mbed_events.h>
 #include <string>
 #include <list>
+#include <../DevBoards/pindef.h>
+#include <iostream>
+
+using namespace std;
 
 BufferedSerial device(USBTX, USBRX);
 
 CAN can1(PD_0, PD_1);
 CAN can2(PB_5, PB_6);
 
+AnalogIn cell_volt(CELL_VOLTAGE);
 DigitalIn button(USER_BUTTON);
 DigitalOut rx_led(LED2);
 DigitalOut tx_led(LED3);
 
 Thread send_thread;
 Thread recv_thread;
+Thread test_thread;
 
 Mutex printMutex;
 
@@ -90,10 +96,33 @@ void read_from_serial() {
     }
 
 }
-
+void test_func(){
+    printMutex.lock();
+    printf("bb\n\r");
+    printMutex.unlock();
+}
+bool test_cell_voltage(double test_min, double test_max){
+    float v = cell_volt.read();
+    int v_int = (int)v;
+    int v_dec = (int)(v/100);
+    cout << v_int << "." << v_dec << endl;
+    cout << (int)(v/100) << endl;
+    if(v>=test_min && v<=test_max){
+        printf("Cell Voltage Test PASSED \n\r");
+        return true;
+    }
+    else
+    {
+        printf("Cell Voltage Test FAILED \n\r");
+        return false; 
+    }
+}
 int main() {
     device.set_baud(38400);
-    send_thread.start(read_from_serial);
-    recv_thread.start(recv_func);
+    //printf("aa");
+    //send_thread.start(read_from_serial);
+    //recv_thread.start(recv_func);
+    test_cell_voltage(0.0,1.0);
+    //test_thread.start(test_func);
 }
 
