@@ -102,7 +102,7 @@ void test_func(){
     printf("bb\n\r");
     printMutex.unlock();
 }
-bool test_cell_voltage(double test_min, double test_max){
+bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);

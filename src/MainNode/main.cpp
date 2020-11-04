@@ -7,8 +7,9 @@
 #include <iostream>
 
 AnalogIn pack_volt(PACK_VOLTAGE);
+AnalogIn pack_current(PACK_CURRENT);
 
-bool test_pack_voltage(double test_min, double test_max){
+bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);
@@ -20,6 +21,22 @@ bool test_pack_voltage(double test_min, double test_max){
     else
     {
         printf("Pack Voltage Test FAILED \n\r");
+        return false; 
+    }
+}
+
+bool test_pack_current(float test_min, float test_max){
+    float i = pack_current.read();
+    int i_int = (int)i;
+    int i_dec = (int)(i/100);
+    cout << i_int << "." << i_dec << endl;
+    if(i>=test_min && i<=test_max){
+        printf("Pack Current Test PASSED \n\r");
+        return true;
+    }
+    else
+    {
+        printf("Pack Current Test FAILED \n\r");
         return false; 
     }
 }

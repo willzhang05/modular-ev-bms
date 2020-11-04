@@ -7,8 +7,9 @@
 #include <iostream>
 
 AnalogIn cell_volt(CELL_VOLTAGE);
+AnalogIn cell_temp(TEMPERATURE_DATA);
 AnalogOut balance_out(BALANCING_CONTROL);
-bool test_cell_voltage(double test_min, double test_max){
+bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);
@@ -38,6 +39,23 @@ bool test_balance_output(){
     }
 
     return false;
+}
+
+
+bool test_cell_temperature(float test_min, float test_max){
+    float t = cell_temp.read();
+    int t_int = (int)t;
+    int t_dec = (int)(t/100);
+    cout << t_int << "." << t_dec << endl;
+    if(t>=test_min && t<=test_max){
+        printf("Pack Current Test PASSED \n\r");
+        return true;
+    }
+    else
+    {
+        printf("Pack Current Test FAILED \n\r");
+        return false; 
+    }
 }
 int main() {
     while(1)
