@@ -11,4 +11,7 @@
 
 #define CELL_VOLTAGE  PA_0
 #define BALANCING_CONTROL   PA_4
+
+#define FAN_CTRL                    PB_4
+#define FAN_PWM                     PB_5
 #endif // PINDEF_H

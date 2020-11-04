@@ -14,7 +14,9 @@ CAN can1(PD_0, PD_1);
 CAN can2(PB_5, PB_6);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
-AnalogOut balance_out(BALANCING_CONTROL);
+DigitalOut balance_out(BALANCING_CONTROL);
+DigitalOut fan_ctrl(FAN_CTRL);
+PwmOut fan_pwm(FAN_PWM);
 DigitalIn button(USER_BUTTON);
 DigitalOut rx_led(LED2);
 DigitalOut tx_led(LED3);
@@ -118,15 +120,38 @@ bool test_cell_voltage(float test_min, float test_max){
     }
 }
 bool test_balance_output(){
-    balance_out.write(0.0); // switch balancing off
+    balance_out.write(0); // switch balancing off
     printf("Balance Output set to Low, measure current and then press any key to continue... \n\r");
     char c;
     //while(1)
     //{
     device.read(&c, 1);
-    balance_out.write(1.0); // switch balancing on
+    balance_out.write(1); // switch balancing on
     printf("Balance Output set to High, measure current. Did test pass (y/n)? \n\r");
     device.read(&c, 1);
+    balance_out.write(0); // switch balancing off
+    if(c=='y'){
+        return true;
+    }
+
+    return false;
+}
+bool test_fan_output(){
+    char c;
+    fan_ctrl.write(0);
+    fan_pwm.write(0.0);
+    printf("Fan ctrl set to Low, press any key to continue...  \n\r");
+    device.read(&c, 1);
+    fan_ctrl.write(0.0);
+    fan_pwm.write(0.1);
+    printf("Fan ctrl set to High, PWM set to Low, press any key to continue...  \n\r");
+    device.read(&c, 1);
+    fan_ctrl.write(0.0);
+    fan_pwm.write(0.9);
+    printf("Fan ctrl set to High, PWM set to High, Did test pass (y/n)? \n\r");
+    device.read(&c, 1);
+    fan_ctrl.write(0);
+    fan_pwm.write(0.0);
     if(c=='y'){
         return true;
     }

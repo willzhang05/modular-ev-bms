@@ -6,9 +6,11 @@
 #include <../CellNode/pindef.h>
 #include <iostream>
 
+BufferedSerial device(USBTX, USBRX);
+
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
-AnalogOut balance_out(BALANCING_CONTROL);
+DigitalOut balance_out(BALANCING_CONTROL);
 bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
@@ -25,15 +27,16 @@ bool test_cell_voltage(float test_min, float test_max){
     }
 }
 bool test_balance_output(){
-    balance_out.write(0.0); // switch balancing off
+    balance_out.write(0); // switch balancing off
     printf("Balance Output set to Low, measure current and then press any key to continue... \n\r");
     char c;
     //while(1)
     //{
     device.read(&c, 1);
-    balance_out.write(1.0); // switch balancing on
+    balance_out.write(1); // switch balancing on
     printf("Balance Output set to High, measure current. Did test pass (y/n)? \n\r");
     device.read(&c, 1);
+    balance_out.write(0); // switch balancing off
     if(c=='y'){
         return true;
     }
