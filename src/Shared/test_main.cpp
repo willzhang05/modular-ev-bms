@@ -158,6 +158,14 @@ bool test_fan_output(){
 
     return false;
 }
+void test_sleep()
+{
+    char c;
+    printf("Board not sleeping right now, press any key to go to sleep...  \n\r")
+    device.read(&c, 1);
+    sleep();
+
+}
 int main() {
     device.set_baud(38400);
     bool t = test_balance_output();

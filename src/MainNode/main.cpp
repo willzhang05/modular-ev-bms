@@ -107,7 +107,14 @@ bool test_charge_contactor(){
 
     return false;
 }
+void test_sleep()
+{
+    char c;
+    printf("Board not sleeping right now, press any key to go to sleep...  \n\r")
+    device.read(&c, 1);
+    sleep();
 
+}
 int main() {
     while(1)
     {
