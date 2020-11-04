@@ -9,5 +9,6 @@
 #define CAN2_RX      PB_5   // Rx for MCU
 #define CAN2_TX      PB_6
 
-#define CELL_VOLTAGE  PA_3
+#define CELL_VOLTAGE  PA_0
+#define BALANCING_CONTROL   PA_4
 #endif // PINDEF_H

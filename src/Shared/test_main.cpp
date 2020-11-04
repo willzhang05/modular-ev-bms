@@ -14,6 +14,7 @@ CAN can1(PD_0, PD_1);
 CAN can2(PB_5, PB_6);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
+AnalogOut balance_out(BALANCING_CONTROL);
 DigitalIn button(USER_BUTTON);
 DigitalOut rx_led(LED2);
 DigitalOut tx_led(LED3);
@@ -106,7 +107,6 @@ bool test_cell_voltage(double test_min, double test_max){
     int v_int = (int)v;
     int v_dec = (int)(v/100);
     cout << v_int << "." << v_dec << endl;
-    cout << (int)(v/100) << endl;
     if(v>=test_min && v<=test_max){
         printf("Cell Voltage Test PASSED \n\r");
         return true;
@@ -117,12 +117,29 @@ bool test_cell_voltage(double test_min, double test_max){
         return false; 
     }
 }
+bool test_balance_output(){
+    balance_out.write(0.0); // switch balancing off
+    printf("Balance Output set to Low, measure current and then press any key to continue... \n\r");
+    char c;
+    //while(1)
+    //{
+    device.read(&c, 1);
+    balance_out.write(1.0); // switch balancing on
+    printf("Balance Output set to High, measure current. Did test pass (y/n)? \n\r");
+    device.read(&c, 1);
+    if(c=='y'){
+        return true;
+    }
+
+    return false;
+}
 int main() {
     device.set_baud(38400);
-    //printf("aa");
+    bool t = test_balance_output();
+    cout << t << endl;
     //send_thread.start(read_from_serial);
     //recv_thread.start(recv_func);
-    test_cell_voltage(0.0,1.0);
+    //test_cell_voltage(0.0,1.0);
     //test_thread.start(test_func);
 }
 
