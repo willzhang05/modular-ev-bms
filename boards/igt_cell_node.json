@@ -20,9 +20,15 @@
     "svd_path": "STM32F042x.svd"
   },
   "frameworks": [
-    "mbed"
+    "cmsis",
+    "mbed",
+    "stm32cube",
+    "libopencm3"
   ],
-  "name": "Modular BMS CellNode (STM32F042F6Px)",
+  "platforms": [
+    "ststm32"
+  ],
+  "name": "Modular BMS CellNode (STM32F042F6P6)",
   "upload": {
     "maximum_ram_size": 6144,
     "maximum_size": 32768,

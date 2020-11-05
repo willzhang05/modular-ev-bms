@@ -1,0 +1,31 @@
+{
+    "CELLNODE_STM32F042": {
+        "inherits": [
+            "MCU_STM32"
+        ],
+        "core": "Cortex-M0",
+        "extra_labels_add": [
+            "STM32F0"
+        ],
+        "config": {
+            "clock_source": {
+                "help": "Mask value : USE_PLL_HSE_EXTC (need HW patch) | USE_PLL_HSE_XTAL (need HW patch) | USE_PLL_HSI | USE_PLL_MSI",
+                "value": "USE_PLL_HSE_EXTC | USE_PLL_HSI",
+                "macro_name": "CLOCK_SOURCE"
+            }
+        },
+        "macros_add": [
+            "STM32F042x6"
+        ],
+        "detect_code": [
+            "CELL"
+        ],
+        "device_has_add": [
+            "SERIAL_ASYNCH",
+            "CAN",
+            "MPU"
+        ],
+        "device_name": "STM32F042F6",
+        "bootloader_supported": true
+    }
+}
