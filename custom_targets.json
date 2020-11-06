@@ -1,11 +1,12 @@
 {
-    "CELLNODE_STM32F042": {
+    "IGT_CELL_NODE": {
         "inherits": [
             "MCU_STM32"
         ],
         "core": "Cortex-M0",
         "extra_labels_add": [
-            "STM32F0"
+            "STM32F0",
+            "STM32F042F6"
         ],
         "config": {
             "clock_source": {
@@ -15,17 +16,16 @@
             }
         },
         "macros_add": [
-            "STM32F042x6"
+            "CMSIS_VECTAB_VIRTUAL",
+            "CMSIS_VECTAB_VIRTUAL_HEADER_FILE=\"cmsis_nvic.h\""
         ],
         "detect_code": [
             "CELL"
         ],
         "device_has_add": [
-            "SERIAL_ASYNCH",
             "CAN",
-            "MPU"
+            "CRC"
         ],
-        "device_name": "STM32F042F6",
-        "bootloader_supported": true
+        "device_name": "STM32F042F6"
     }
 }
