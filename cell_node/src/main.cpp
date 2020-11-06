@@ -3,7 +3,7 @@
 #include <mbed_events.h>
 #include <string>
 #include <list>
-#include <../CellNode/pindef.h>
+#include <pindef.h>
 #include <iostream>
 
 BufferedSerial device(USBTX, USBRX);

@@ -1,37 +1,29 @@
 {
     "IGT_CELL_NODE": {
-        "inherits": [
-            "MCU_STM32_BAREMETAL"
-        ],
+        "inherits": ["FAMILY_STM32"],
         "core": "Cortex-M0",
-        "extra_labels_add": [
-            "STM32F0",
-            "STM32F042F6"
-        ],
+        "default_toolchain": "uARM",
+        "extra_labels_add": ["STM32F0", "STM32F042F6"],
         "config": {
             "clock_source": {
-                "help": "Mask value : USE_PLL_HSE_EXTC (need HW patch) | USE_PLL_HSE_XTAL (need HW patch) | USE_PLL_HSI | USE_PLL_MSI",
+                "help": "Mask value : USE_PLL_HSE_EXTC (need HW patch) | USE_PLL_HSE_XTAL (need HW patch) | USE_PLL_HSI",
                 "value": "USE_PLL_HSE_EXTC | USE_PLL_HSI",
                 "macro_name": "CLOCK_SOURCE"
             }
         },
-        "detect_code": [
-            "CELL"
-        ],
-        "overrides": {
-            "lse_available": 0
-        },
+        "detect_code": ["0785"],
+        "overrides": { "lse_available": 0 },
         "macros_add": [
             "CMSIS_VECTAB_VIRTUAL",
-            "CMSIS_VECTAR_VIRTUAL_HEADER_FILE=\"cmsis_nvic.h\""
+            "CMSIS_VECTAB_VIRTUAL_HEADER_FILE=\"cmsis_nvic.h\""
         ],
         "device_has_add": [
             "CAN",
             "CRC"
         ],
-        "device_has_remove": [
-            "LPTICKER"
-        ],
+        "device_has_remove": ["LPTICKER"],
+        "default_lib": "small",
+        "release_versions": ["2"],
         "device_name": "STM32F042F6"
     }
 }
