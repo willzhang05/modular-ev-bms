@@ -1,7 +1,7 @@
 #include <mbed.h>
 #include "pindef.h"
 
-Serial device(USBTX, USBRX);
+BufferedSerial device(USBTX, USBRX);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);

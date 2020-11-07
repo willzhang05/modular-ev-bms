@@ -1,8 +1,8 @@
 {
     "IGT_CELL_NODE": {
-        "inherits": ["FAMILY_STM32"],
+        "inherits": ["MCU_STM32"],
         "core": "Cortex-M0",
-        "default_toolchain": "uARM",
+        "default_toolchain": "ARM",
         "extra_labels_add": ["STM32F0", "STM32F042K6"],
         "config": {
             "clock_source": {
@@ -22,8 +22,12 @@
             "CRC"
         ],
         "device_has_remove": ["LPTICKER"],
-        "default_lib": "small",
-        "release_versions": ["2", "5"],
-        "device_name": "STM32F042F6"
+        "c_lib": "small",
+        "device_name": "STM32F042F6",
+        "supported_application_profiles": ["bare-metal"],
+        "supported_c_libs": {
+            "arm": ["small"],
+            "gcc_arm": ["small"]
+        }
     }
 }
