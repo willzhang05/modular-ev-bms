@@ -26,6 +26,8 @@ def _is_ignored(path):
     In details, takes the .mbedignore file in the path and checks whether it
     contains a line with string '*'.
     """
+    if not os.path.isdir(path):
+        return False
     mbedignore_path = os.path.join(path, '.mbedignore')
     if not Path(mbedignore_path).is_file():
         return False
@@ -55,6 +57,8 @@ def _make_ignored(path):
     Effectively it puts a line with string '*' in the .mbedignore file in the
     specified path.
     """
+    if not os.path.isdir(path):
+        return
     mbedignore_path = os.path.join(path, '.mbedignore')
     string_to_append = '*\n' if not _is_extra_newline_necessary(
         mbedignore_path) else '\n*\n'
@@ -92,6 +96,8 @@ def _make_unignored(path):
     Include the specified path in Mbed compilation.
     Performs opposite action to _make_ignored function.
     """
+    if not os.path.isdir(path):
+        return
     mbedignore_path = os.path.join(path, '.mbedignore')
     lines = _lines_to_list(mbedignore_path)
     lines.remove('*')
