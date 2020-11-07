@@ -3,7 +3,7 @@
         "inherits": ["FAMILY_STM32"],
         "core": "Cortex-M0",
         "default_toolchain": "uARM",
-        "extra_labels_add": ["STM32F0", "STM32F042F6"],
+        "extra_labels_add": ["STM32F0", "STM32F042K6"],
         "config": {
             "clock_source": {
                 "help": "Mask value : USE_PLL_HSE_EXTC (need HW patch) | USE_PLL_HSE_XTAL (need HW patch) | USE_PLL_HSI",
@@ -23,7 +23,7 @@
         ],
         "device_has_remove": ["LPTICKER"],
         "default_lib": "small",
-        "release_versions": ["2"],
+        "release_versions": ["2", "5"],
         "device_name": "STM32F042F6"
     }
 }

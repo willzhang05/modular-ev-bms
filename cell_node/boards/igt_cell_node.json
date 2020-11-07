@@ -3,8 +3,7 @@
     "cpu": "cortex-m0",
     "extra_flags": "-DSTM32F042x6",
     "f_cpu": "48000000L",
-    "mcu": "stm32f042f6p6",
-    "product_line": "STM32F042x6"
+    "mcu": "stm32f042f6p6"
   },
   "connectivity": [
     "can"
@@ -13,6 +12,7 @@
     "default_tools": [
       "stlink"
     ],
+    "jlink_device": "STM32F042F6",
     "onboard_tools": [
       "stlink"
     ],
@@ -20,20 +20,21 @@
     "svd_path": "STM32F042x.svd"
   },
   "frameworks": [
-    "mbed"
+    "mbed",
+    "stm32cube"
   ],
-  "platforms": [
-    "ststm32"
-  ],
-  "name": "Modular BMS CellNode (STM32F042F6P6)",
+  "name": "STM32 F042F6P6",
   "upload": {
     "maximum_ram_size": 6144,
     "maximum_size": 32768,
     "protocol": "stlink",
     "protocols": [
-      "stlink"
+      "jlink",
+      "stlink",
+      "blackmagic",
+      "mbed"
     ]
   },
-  "url": "https://cadlab.io/project/23337/master/files",
-  "vendor": "In Good Taste"
+  "url": "https://developer.mbed.org/platforms/ST-Nucleo-F042K6/",
+  "vendor": "ST"
 }
