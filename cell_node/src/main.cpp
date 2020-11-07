@@ -1,21 +1,17 @@
 #include <mbed.h>
-#include <rtos.h>
-#include <mbed_events.h>
-#include <string>
-#include <list>
-#include <pindef.h>
-#include <iostream>
+#include "pindef.h"
 
-BufferedSerial device(USBTX, USBRX);
+Serial device(USBTX, USBRX);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
 DigitalOut balance_out(BALANCING_CONTROL);
+
 bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);
-    cout << v_int << "." << v_dec << endl;
+    printf("%d.%d\n", v_int, v_dec);
     if(v>=test_min && v<=test_max){
         printf("Cell Voltage Test PASSED \n\r");
         return true;
@@ -49,7 +45,7 @@ bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
     int t_int = (int)t;
     int t_dec = (int)(t/100);
-    cout << t_int << "." << t_dec << endl;
+    printf("%d.%d\n", t_int, t_dec);
     if(t>=test_min && t<=test_max){
         printf("Pack Current Test PASSED \n\r");
         return true;
@@ -63,7 +59,7 @@ bool test_cell_temperature(float test_min, float test_max){
 void test_sleep()
 {
     char c;
-    printf("Board not sleeping right now, press any key to go to sleep...  \n\r")
+    printf("Board not sleeping right now, press any key to go to sleep...  \n\r");
     device.read(&c, 1);
     sleep();
 
