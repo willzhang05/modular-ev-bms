@@ -1,10 +1,5 @@
 #include <mbed.h>
-#include <rtos.h>
-#include <mbed_events.h>
-#include <string>
-#include <list>
-#include <../MainNode/pindef.h>
-#include <iostream>
+#include <pindef.h>
 
 BufferedSerial device(USBTX, USBRX);
 
@@ -21,7 +16,7 @@ bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);
-    cout << v_int << "." << v_dec << endl;
+    printf("%d.%d\n\r", v_int, v_dec);
     if(v>=test_min && v<=test_max){
         printf("Pack Voltage Test PASSED \n\r");
         return true;
@@ -37,7 +32,7 @@ bool test_pack_current(float test_min, float test_max){
     float i = pack_current.read();
     int i_int = (int)i;
     int i_dec = (int)(i/100);
-    cout << i_int << "." << i_dec << endl;
+    printf("%d.%d\n\r", i_int, i_dec);
     if(i>=test_min && i<=test_max){
         printf("Pack Current Test PASSED \n\r");
         return true;
@@ -110,7 +105,7 @@ bool test_charge_contactor(){
 void test_sleep()
 {
     char c;
-    printf("Board not sleeping right now, press any key to go to sleep...  \n\r")
+    printf("Board not sleeping right now, press any key to go to sleep...  \n\r");
     device.read(&c, 1);
     sleep();
 
