@@ -26,7 +26,6 @@
         },
         "extra_labels_add": [
             "STM32G4",
-            "STM32G473xx",
             "STM32G473CE"
         ],
         "components_add": [
