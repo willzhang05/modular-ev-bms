@@ -9,6 +9,11 @@
                 "help": "Mask value : USE_PLL_HSE_EXTC (need HW patch) | USE_PLL_HSE_XTAL (need HW patch) | USE_PLL_HSI",
                 "value": "USE_PLL_HSE_EXTC | USE_PLL_HSI",
                 "macro_name": "CLOCK_SOURCE"
+            },
+            "hse_value": {
+                "help": "HSE default value is 25MHz in HAL",
+                "value": "8000000",
+                "macro_name": "HSE_VALUE"
             }
         },
         "detect_code": ["0785"],
