@@ -12,7 +12,14 @@
     "can"
   ],
   "debug": {
+    "default_tools": [
+      "stlink"
+    ],
     "jlink_device": "STM32G473CE",
+    "onboard_tools": [
+      "stlink"
+    ],
+    "openocd_board": "st_nucleo_g4",
     "svd_path": "STM32G473xx.svd"
   },
   "frameworks": [
