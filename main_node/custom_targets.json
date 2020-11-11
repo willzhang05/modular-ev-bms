@@ -1,5 +1,5 @@
 {
-    "NUCLEO_G473CE": {
+    "IGT_MAIN_NODE": {
         "inherits": [
             "MCU_STM32"
         ],
