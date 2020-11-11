@@ -11,7 +11,7 @@ bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
     int v_dec = (int)(v/100);
-    printf("%d.%d\n", v_int, v_dec);
+    printf("%d.%d\n\r", v_int, v_dec);
     if(v>=test_min && v<=test_max){
         printf("Cell Voltage Test PASSED \n\r");
         return true;
@@ -45,7 +45,7 @@ bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
     int t_int = (int)t;
     int t_dec = (int)(t/100);
-    printf("%d.%d\n", t_int, t_dec);
+    printf("%d.%d\n\r", t_int, t_dec);
     if(t>=test_min && t<=test_max){
         printf("Pack Current Test PASSED \n\r");
         return true;
