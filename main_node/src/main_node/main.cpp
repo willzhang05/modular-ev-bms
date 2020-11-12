@@ -3,7 +3,7 @@
 #include <mbed_events.h>
 #include <string>
 #include <list>
-#include <../MainNode/pindef.h>
+#include "pindef.h"
 #include <iostream>
 
 BufferedSerial device(USBTX, USBRX);
@@ -16,6 +16,13 @@ PwmOut fan_pwm(FAN_PWM);
 
 DigitalOut charge_contactor(CHARGE_CONTACTOR_CTRL);
 DigitalOut discharge_contactor(DISCHARGE_CONTACTOR_CTRL);
+
+int cell_num = 2;
+int max_cell_node = 50;
+float cell_voltages [50];
+float cell_balancing_thresh = 0.3;
+float cell_temperatures [50];
+float temperature_thresh = 30.0;
 
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
@@ -55,11 +62,11 @@ bool test_fan_output(){
     fan_pwm.write(0.0); 
     printf("Fan ctrl set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
-    fan_ctrl.write(0.0);
+    fan_ctrl.write(1);
     fan_pwm.write(0.1);
     printf("Fan ctrl set to High, PWM set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
-    fan_ctrl.write(0.0);
+    fan_ctrl.write(1);
     fan_pwm.write(0.9);
     printf("Fan ctrl set to High, PWM set to High, Did test pass (y/n)? \n\r");
     device.read(&c, 1);
@@ -110,10 +117,62 @@ bool test_charge_contactor(){
 void test_sleep()
 {
     char c;
-    printf("Board not sleeping right now, press any key to go to sleep...  \n\r")
+    printf("Board not sleeping right now, press any key to go to sleep...  \n\r");
     device.read(&c, 1);
     sleep();
 
+}
+void cell_balancing_logic(){ //Cell balancing based on voltage
+    if(cell_num>0){
+        float min_cell_voltage = cell_voltages[0];
+        for(int i = 0;i<cell_num;i++ )
+        {
+            if(cell_voltages[i]<min_cell_voltage){
+                min_cell_voltage = cell_voltages[i];
+            }
+        }
+        for(int i = 0;i<cell_num;i++ )
+        {
+            if(cell_voltages[i]>(min_cell_voltage+cell_balancing_thresh)){
+                //Turn cell balancing on
+            }
+            else{
+                //turn cell balancing off
+            }
+        }
+    }
+    
+}
+void fan_logic(){
+    if(cell_num>0){
+        bool fanOn = false;
+        float max_cell_temp = cell_temperatures[0];
+        for(int i = 0;i<cell_num;i++ )
+        {
+            if(cell_temperatures[i]>temperature_thresh){
+                fanOn = true;
+            }
+            if(cell_temperatures[i]>max_cell_temp){
+                max_cell_temp = cell_temperatures[i];
+            }
+        }
+        if(fanOn)
+        {
+            fan_ctrl.write(1);
+            float fan_power = (max_cell_temp-max_cell_temp)/20; 
+            if(fan_power>1.0){
+                fan_power = 1.0;
+            }
+            else if(fan_power<0.0){
+                fan_power = 0.0;
+            }
+            fan_pwm.write(fan_power);
+        }
+        else{
+            fan_ctrl.write(0);
+            fan_pwm.write(0.0); 
+        }
+    }
 }
 int main() {
     while(1)
