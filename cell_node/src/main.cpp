@@ -27,9 +27,15 @@ float dt = 0.1; //seconds
 float max_voltage = 4.2;
 float min_voltage = 2.5;
 
+float VDD = 3.3;
+
 int callibrate_length = 7;
 float voltage_callibrate [7] = {0, 2.5, 2.8, 3.3, 3.6, 4.2, 10};
 float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
+
+int temperature_length = 8;
+float t_voltage_output [8] = {1.299, 1.034, 0.925, 0.871, 0.816, 0.760, 0.476, 0.183};
+float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
 
 void init_battery_estimation(float voltage){
     
@@ -171,7 +177,19 @@ bool test_balance_output(){
 
     return false;
 }
-
+float get_cell_temperature(){
+    float t_voltage = cell_temp.read()*VDD;
+    for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
+        if(t_voltage>=t_voltage_output[i] && t_voltage<=t_voltage_output[i+1]){
+            return ((t_voltage-t_voltage_output[i])*(temperature[i+1]-temperature[i])/(t_voltage_output[i+1]-t_voltage_output[i]))+temperature[i]; //SOC based on voltage calibration
+        }
+    }
+    return -100.0;
+}
+float get_cell_voltage(){
+    float v = cell_volt.read()*VDD;
+    return v;
+}
 
 bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
