@@ -52,7 +52,7 @@ bool test_pack_current(float test_min, float test_max){
 bool test_fan_output(){
     char c;
     fan_ctrl.write(0);
-    fan_pwm.write(0.0);
+    fan_pwm.write(0.0); 
     printf("Fan ctrl set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
     fan_ctrl.write(0.0);

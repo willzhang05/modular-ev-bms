@@ -10,6 +10,7 @@
 #define CAN2_TX      PB_6
 
 #define CELL_VOLTAGE  PA_0
+#define TEMPERATURE_DATA    PA_1
 #define BALANCING_CONTROL   PA_4
 
 #define FAN_CTRL                    PB_4
