@@ -11,6 +11,7 @@ PwmOut fan_pwm(FAN_PWM);
 
 DigitalOut charge_contactor(CHARGE_CONTACTOR_CTRL);
 DigitalOut discharge_contactor(DISCHARGE_CONTACTOR_CTRL);
+DigitalOut test_point_0(UNUSED_PIN_0);
 
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
@@ -111,8 +112,7 @@ void test_sleep()
 
 }
 int main() {
-    while(1)
-    {
-        // do nothing
-    }
+    test_point_0.write(0);
+    //test_point_0.write(1);
+    printf("test \n\r");
 }
