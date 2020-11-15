@@ -112,7 +112,14 @@ void test_sleep()
 
 }
 int main() {
-    test_point_0.write(0);
+    device.set_baud(38400);
+    printf("test start \n\r");
+    while(1){
+        test_point_0.write(0);
+        printf("writing \n\r");
+        test_point_0.write(1);
+    }
+    
     //test_point_0.write(1);
-    printf("test \n\r");
+    
 }
