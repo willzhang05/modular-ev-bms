@@ -136,23 +136,15 @@ typedef enum {
     USBTX = STDIO_UART_TX, // used for greentea tests
     USBRX = STDIO_UART_RX, // used for greentea tests
 
-    // I2C signals aliases
-    I2C_SDA = D14,
-    I2C_SCL = D15,
-
-    // SPI signals aliases
-    SPI_CS   = D10,
-    SPI_MOSI = D11,
-    SPI_MISO = D12,
-    SPI_SCK  = D13,
-
-    // Standardized LED and button names
-    //LED1    = Px_x,
-    //BUTTON1 = Px_x,
-
-    // Backward legacy names
-    USER_BUTTON = BUTTON1,
-    PWM_OUT = D3,
+    SERIAL_TX   = STDIO_UART_TX,
+    SERIAL_RX   = STDIO_UART_RX,
+    I2C_SCL     = PB_8,
+    I2C_SDA     = PB_9,
+    SPI_MOSI    = PA_7,
+    SPI_MISO    = PA_6,
+    SPI_SCK     = PA_5,
+    SPI_CS      = PA_4,
+    PWM_OUT     = PA_7,
     
     /**** USB pins ****/
     USB_DM = PA_11,
