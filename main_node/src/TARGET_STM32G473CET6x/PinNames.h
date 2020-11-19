@@ -121,6 +121,32 @@ typedef enum {
     ADC_VREF = 0xF1, // Internal pin virtual value
     ADC_VBAT = 0xF2, // Internal pin virtual value
 
+    // Arduino connector namings
+    A0          = PA_0,
+    A1          = PA_1,
+    A2          = PA_2,
+    A3          = PA_3,
+    A4          = PA_4,
+    A5          = PA_5,
+
+    D0          = PB_13,
+    D1          = PB_14,
+    D2          = PA_10,
+    D3          = PB_3,
+    D4          = PB_5,
+    D5          = PB_4,
+    D6          = PB_10,
+    D7          = PA_8,
+
+    D8          = PA_9,
+    D9          = PB_15,
+    D10         = PB_6,
+    D11         = PA_7,
+    D12         = PA_6,
+    D13         = PA_5,
+    D14         = PB_9,
+    D15         = PB_8,
+
     // STDIO for console print
 #ifdef MBED_CONF_TARGET_STDIO_UART_TX
     STDIO_UART_TX = MBED_CONF_TARGET_STDIO_UART_TX,
@@ -136,6 +162,14 @@ typedef enum {
     USBTX = STDIO_UART_TX, // used for greentea tests
     USBRX = STDIO_UART_RX, // used for greentea tests
 
+    // Generic signals namings
+    LED1        = PA_5,
+    LED2        = PA_5,
+    LED3        = PA_5,
+    LED4        = PA_5,
+    USER_BUTTON = PC_13,
+    // Standardized button names
+    BUTTON1 = USER_BUTTON,
     SERIAL_TX   = STDIO_UART_TX,
     SERIAL_RX   = STDIO_UART_RX,
     I2C_SCL     = PB_8,
