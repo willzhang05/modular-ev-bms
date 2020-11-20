@@ -24,7 +24,6 @@
                 "macro_name": "HSE_VALUE"
             }
         },
-        "LSE_AVAILABLE": false,
         "extra_labels_add": [
             "STM32G4",
             "STM32G473CE"
@@ -39,7 +38,8 @@
             "MBED_TICKLESS"
         ],
         "overrides": {
-            "lpticker_delay_ticks": 0
+            "lpticker_delay_ticks": 0,
+            "lse_available": 0
         },
         "device_has_add": [
             "ANALOGOUT",
