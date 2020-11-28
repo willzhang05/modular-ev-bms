@@ -187,7 +187,7 @@ float get_cell_temperature(){
     return -100.0;
 }
 float get_cell_voltage(){
-    float v = cell_volt.read()*VDD;
+    float v = cell_volt.read()*VDD*(18+33)/33;
     return v;
 }
 

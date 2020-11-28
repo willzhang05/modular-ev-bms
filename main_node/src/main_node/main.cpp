@@ -23,6 +23,11 @@ float cell_voltages [50];
 float cell_balancing_thresh = 0.3;
 float cell_temperatures [50];
 float temperature_thresh = 30.0;
+float VDD = 3.3;
+
+int current_length = 7;
+float c_voltage_output [7] = {0, 0.5, 1, 2.5, 4, 4.5, 5};
+float current [7] = {-2700, -1300, -700, 30, 1300, 1500, 3300};
 
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
@@ -173,6 +178,19 @@ void fan_logic(){
             fan_pwm.write(0.0); 
         }
     }
+}
+float get_pack_voltage(){
+    float v = pack_volt.read()*VDD*(180+90000)/180;
+    return v;
+}
+float get_cell_voltage(){
+    float c_voltage = pack_current.read()*VDD;
+    for(int i =0;i<current_length-1;i++){ //Voltage calibration
+        if(c_voltage>=c_voltage_output[i] && c_voltage<=c_voltage_output[i+1]){
+            return ((c_voltage-c_voltage_output[i])*(current[i+1]-current[i])/(c_voltage_output[i+1]-c_voltage_output[i]))+current[i]; //SOC based on voltage calibration
+        }
+    }
+    return -2800.0;
 }
 int main() {
     while(1)
