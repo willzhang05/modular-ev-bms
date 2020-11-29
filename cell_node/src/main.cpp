@@ -7,6 +7,8 @@ AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
 DigitalOut balance_out(BALANCING_CONTROL);
 
+CAN* can1;
+
 bool test_cell_voltage(float test_min, float test_max){
     float v = cell_volt.read();
     int v_int = (int)v;
@@ -65,6 +67,12 @@ void test_sleep()
 
 }
 int main() {
+    __HAL_REMAP_PIN_ENABLE(HAL_REMAP_PA11_PA12);
+    
+    CAN theRealCan1(CAN_RX, CAN_TX);
+    can1 = &theRealCan1;
+
+
     while(1)
     {
         // do nothing
