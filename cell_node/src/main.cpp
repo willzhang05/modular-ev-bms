@@ -60,7 +60,7 @@ bool test_balance_output(){
 bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
     int t_int = (int)t;
-    int t_dec = (int)(t/100);
+    int t_dec = (int)(t*100);
     printf("%d.%d\n\r", t_int, t_dec);
     if(t>=test_min && t<=test_max){
         printf("Pack Current Test PASSED \n\r");
