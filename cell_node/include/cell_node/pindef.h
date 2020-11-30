@@ -32,4 +32,14 @@
 #define UNUSED_PIN_2    PA_7
 #define UNUSED_PIN_3    PB_1
 
+/****************************/
+/* pin definitions for LEDs */
+/****************************/
+// #undef LED2
+#define LED2 UNUSED_PIN_0
+// #undef LED3
+#define LED3 UNUSED_PIN_1
+// #undef LED4
+#define LED4 UNUSED_PIN_2
+
 #endif // PINDEF_H

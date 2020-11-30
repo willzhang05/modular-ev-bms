@@ -4,16 +4,23 @@
 BufferedSerial device(USBTX, USBRX);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
-AnalogIn cell_temp(TEMPERATURE_DATA);
-DigitalOut balance_out(BALANCING_CONTROL);
+// AnalogIn cell_temp(TEMPERATURE_DATA);
+// DigitalOut balance_out(BALANCING_CONTROL);
+
+DigitalOut led2(LED2);
 
 CAN* can1;
 
-bool test_cell_voltage(float test_min, float test_max){
-    float v = cell_volt.read();
-    int v_int = (int)v;
-    int v_dec = (int)(v/100);
-    printf("%d.%d\n\r", v_int, v_dec);
+bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
+    printf("start test_cell_voltage()\r\n");
+    uint16_t v = cell_volt.read_u16();
+    // int v_int = (int)v;
+    // int v_dec = (int)(v/100);
+    // printf("%d.%d\n\r", v_int, v_dec);
+    printf("TEST PRINT after analog in\r\n");
+    printf(to_string(v).c_str());
+    printf("\r\n");
+    printf("Cell Voltage: %d\n\r", v);
     if(v>=test_min && v<=test_max){
         printf("Cell Voltage Test PASSED \n\r");
         return true;
@@ -24,6 +31,8 @@ bool test_cell_voltage(float test_min, float test_max){
         return false; 
     }
 }
+
+/*
 bool test_balance_output(){
     balance_out.write(0); // switch balancing off
     printf("Balance Output set to Low, measure current and then press any key to continue... \n\r");
@@ -42,7 +51,6 @@ bool test_balance_output(){
     return false;
 }
 
-
 bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
     int t_int = (int)t;
@@ -58,6 +66,7 @@ bool test_cell_temperature(float test_min, float test_max){
         return false; 
     }
 }
+
 void test_sleep()
 {
     char c;
@@ -66,15 +75,28 @@ void test_sleep()
     sleep();
 
 }
+*/
+
 int main() {
+#ifdef STM32F042x6
     __HAL_REMAP_PIN_ENABLE(HAL_REMAP_PA11_PA12);
-    
+#endif
+
     CAN theRealCan1(CAN_RX, CAN_TX);
     can1 = &theRealCan1;
 
+    device.set_baud(38400);
+
+    printf("start of main()\r\n");
 
     while(1)
     {
         // do nothing
+        led2 = led2 ^ 1;
+        printf("Hello! \r\n");
+        test_cell_voltage(0,1);
+        printf("%d\r\n", 1);
+        thread_sleep_for(1000);
+        printf("\r\n");
     }
 }
