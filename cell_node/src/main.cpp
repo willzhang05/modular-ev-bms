@@ -13,21 +13,27 @@ CAN* can1;
 
 bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     printf("start test_cell_voltage()\r\n");
-    uint16_t v = cell_volt.read_u16();
-    // int v_int = (int)v;
-    // int v_dec = (int)(v/100);
+    float v = cell_volt.read();
+    // uint16_t v = cell_volt.read_u16();
+    int v_int = (int)v;
+    int v_dec = (int)(v*100);
     // printf("%d.%d\n\r", v_int, v_dec);
+
+    string toPrint = to_string(v_int) + "." + to_string(v_dec);
+
+    printf("Cell Voltage: ");
+    device.write(toPrint.c_str(), toPrint.length());
+    printf(" OK ?\r\n");
+
     printf("TEST PRINT after analog in\r\n");
-    printf(to_string(v).c_str());
-    printf("\r\n");
-    printf("Cell Voltage: %d\n\r", v);
-    if(v>=test_min && v<=test_max){
-        printf("Cell Voltage Test PASSED \n\r");
+
+    if((v>=test_min) && (v<=test_max)){
+        printf("Cell Voltage Test PASSED \r\n");
         return true;
     }
     else
     {
-        printf("Cell Voltage Test FAILED \n\r");
+        printf("Cell Voltage Test FAILED \r\n");
         return false; 
     }
 }
@@ -95,7 +101,6 @@ int main() {
         led2 = led2 ^ 1;
         printf("Hello! \r\n");
         test_cell_voltage(0,1);
-        printf("%d\r\n", 1);
         thread_sleep_for(1000);
         printf("\r\n");
     }
