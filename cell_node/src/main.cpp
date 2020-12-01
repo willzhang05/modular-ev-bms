@@ -19,9 +19,9 @@ uint16_t current_cell_volt;
 int16_t current_cell_temp;
 
 // multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
-#define CELL_VOLT_MULT  (5.0f)
+#define CELL_VOLT_MULT  (6.75f)     // experimental value
 // multiplier from AnalogIn reading [0, 1] to voltage (mV) used for Cell Temperature formula [0, 3300]
-#define CELL_TEMP_MULT  (3300)
+#define CELL_TEMP_MULT  (3300.0f)
 // Formula taken from LMT84 datasheet, section 8.3
 // (T1, V1) are the minimum temperature's coordinates
 // (T2, V2) are the maximum temperature's coordinates
@@ -138,20 +138,32 @@ int main() {
         test_cell_voltage(0,1);
 #endif
 
-        float v = cell_volt.read() * CELL_VOLT_MULT;
+        float v_direct = cell_volt.read();
+        float v = v_direct * CELL_VOLT_MULT;
         current_cell_volt = (uint16_t)(v*100);
 #ifdef PRINTING
+        int temp = (int)(v_direct * 100);
+        if(temp > 100) {
+            temp -= 100;
+        }
+        printf("Direct Cell Voltage: %d.%d\r\n", (int)(v_direct), temp);
         printf("Cell Voltage: ");
         printFloat(current_cell_volt);
-        printf("\r\n");
+        printf(" V\r\n");
 #endif
 
-        float t = T(cell_temp.read() * CELL_TEMP_MULT);
+        float t_direct = cell_temp.read();
+        float t = T(t_direct * CELL_TEMP_MULT);
         current_cell_temp = (int16_t)(t*100);
 #ifdef PRINTING
+        temp = (int)(t_direct * 100);
+        if(temp >= 100) {
+            temp -= 100;
+        }
+        printf("Direct Cell Temperature: %d.%d\r\n", (int)(t_direct), temp);
         printf("Cell Temperature: ");
         printFloat(current_cell_temp);
-        printf("\r\n");
+        printf(" degrees C\r\n");
 #endif
 
         thread_sleep_for(1000);

@@ -13,7 +13,7 @@
 /* pin definitions for Analog Inputs */
 /*************************************/
 #define CELL_VOLTAGE        PA_0
-#define TEMPERATURE_DATA    PA_1
+#define TEMPERATURE_DATA    PB_0
 
 /***************************************/
 /* pin definitions for Digital Outputs */
