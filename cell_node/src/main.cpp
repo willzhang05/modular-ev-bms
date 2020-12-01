@@ -14,6 +14,24 @@ DigitalOut* balance_out;
 
 CAN* can1;
 
+uint16_t current_cell_volt;
+int16_t current_cell_temp;
+
+// multiplier from AnalogIn reading [0, 1] to Cell Voltage [0, 5]
+#define CELL_VOLT_MULT  (5.0f)
+// multiplier from AnalogIn reading [0, 1] to voltage used for Cell Temperature formula [0, 3.3]
+#define CELL_TEMP_MULT  (3.3f)
+// Formula taken from LMT84 datasheet, section 8.3
+// (T1, V1) are the minimum temperature's coordinates
+// (T2, V2) are the maximum temperature's coordinates
+// Given formula is: V - V1 = (V2 - V1) / (T2 - T1) * (T - T1)
+// Rewritten formula is: T = (V - V1) * (T2 - T1) / (V2 - V1) + T1
+#define T1      (-40.0f)
+#define V1      (1247.0f)
+#define T2      (80.0f)
+#define V2      (591.0f)
+#define T(V)    ((V - V1) * (T2 - T1) / (V2 - V1) + T1)
+
 #ifdef TESTING
 bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     printf("start test_cell_voltage()\r\n");
@@ -95,6 +113,8 @@ int main() {
 
     printf("start of main()\r\n");
 
+
+
     while(1)
     {
         // do nothing
@@ -103,6 +123,14 @@ int main() {
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif
+        float v = cell_volt.read() * CELL_VOLT_MULT;
+        current_cell_volt = (uint16_t)(v*100);
+        printf("Cell Voltage: %d\r\n", current_cell_volt);
+
+        float t = T(cell_temp.read() * CELL_TEMP_MULT);
+        current_cell_temp = (int16_t)(t*100);
+        printf("Cell Temperature: %d\r\n", current_cell_temp);
+
         thread_sleep_for(1000);
         printf("\r\n");
     }
