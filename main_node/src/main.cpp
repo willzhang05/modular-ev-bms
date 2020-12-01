@@ -16,7 +16,7 @@ DigitalOut test_point_0(UNUSED_PIN_0);
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
     int v_int = (int)v;
-    int v_dec = (int)(v/100);
+    int v_dec = (int)(v*100);
     printf("%d.%d\n\r", v_int, v_dec);
     if(v>=test_min && v<=test_max){
         printf("Pack Voltage Test PASSED \n\r");
@@ -111,15 +111,16 @@ void test_sleep()
     sleep();
 
 }
+
 int main() {
-    device.set_baud(38400);
+    // device.set_baud(38400);
     printf("test start \n\r");
+
     while(1){
-        test_point_0.write(0);
+        test_point_0 = test_point_0 ^ 1;
         printf("writing \n\r");
-        test_point_0.write(1);
+        test_pack_voltage(0, 1);
+        thread_sleep_for(1000);
+        printf("\r\n");
     }
-    
-    //test_point_0.write(1);
-    
 }
