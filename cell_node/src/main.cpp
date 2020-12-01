@@ -1,29 +1,22 @@
 #include <mbed.h>
 #include "pindef.h"
 
-BufferedSerial device(USBTX, USBRX);
+// BufferedSerial device(USBTX, USBRX, 38400);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
-// AnalogIn cell_temp(TEMPERATURE_DATA);
-// DigitalOut balance_out(BALANCING_CONTROL);
+AnalogIn cell_temp(TEMPERATURE_DATA);
+DigitalOut* balance_out;
 
-DigitalOut led2(LED2);
+// DigitalOut* led2;
 
 CAN* can1;
 
 bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     printf("start test_cell_voltage()\r\n");
     float v = cell_volt.read();
-    // uint16_t v = cell_volt.read_u16();
     int v_int = (int)v;
     int v_dec = (int)(v*100);
-    // printf("%d.%d\n\r", v_int, v_dec);
-
-    string toPrint = to_string(v_int) + "." + to_string(v_dec);
-
-    printf("Cell Voltage: ");
-    device.write(toPrint.c_str(), toPrint.length());
-    printf(" OK ?\r\n");
+    printf("Cell Voltage: %d.%d\r\n", v_int, v_dec);
 
     printf("TEST PRINT after analog in\r\n");
 
@@ -91,7 +84,11 @@ int main() {
     CAN theRealCan1(CAN_RX, CAN_TX);
     can1 = &theRealCan1;
 
-    device.set_baud(38400);
+    DigitalOut theRealBalanceOut(BALANCING_CONTROL);
+    balance_out = &theRealBalanceOut;
+
+    DigitalOut led2(LED2);
+
 
     printf("start of main()\r\n");
 

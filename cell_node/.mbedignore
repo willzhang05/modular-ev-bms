@@ -12,6 +12,7 @@ features/device_key
 features/FEATURE_BLE
 features/FEATURE_BOOTLOADER
 features/FEATURE_EXPERIMENTAL_API
+features/frameworks
 features/lorawan
 features/lwipstack
 features/nanostack
