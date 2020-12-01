@@ -18,10 +18,10 @@ CAN* can1;
 uint16_t current_cell_volt;
 int16_t current_cell_temp;
 
-// multiplier from AnalogIn reading [0, 1] to Cell Voltage [0, 5]
+// multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
 #define CELL_VOLT_MULT  (5.0f)
-// multiplier from AnalogIn reading [0, 1] to voltage used for Cell Temperature formula [0, 3.3]
-#define CELL_TEMP_MULT  (3.3f)
+// multiplier from AnalogIn reading [0, 1] to voltage (mV) used for Cell Temperature formula [0, 3300]
+#define CELL_TEMP_MULT  (3300)
 // Formula taken from LMT84 datasheet, section 8.3
 // (T1, V1) are the minimum temperature's coordinates
 // (T2, V2) are the maximum temperature's coordinates
