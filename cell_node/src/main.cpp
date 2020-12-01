@@ -1,6 +1,9 @@
 #include <mbed.h>
 #include "pindef.h"
 
+// #define TESTING // only defined when using test functions
+
+// This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
 
 AnalogIn cell_volt(CELL_VOLTAGE);
@@ -11,6 +14,7 @@ DigitalOut* balance_out;
 
 CAN* can1;
 
+#ifdef TESTING
 bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     printf("start test_cell_voltage()\r\n");
     float v = cell_volt.read();
@@ -18,7 +22,7 @@ bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     int v_dec = (int)(v*100);
     printf("Cell Voltage: %d.%d\r\n", v_int, v_dec);
 
-    printf("TEST PRINT after analog in\r\n");
+    // printf("TEST PRINT after analog in\r\n");
 
     if((v>=test_min) && (v<=test_max)){
         printf("Cell Voltage Test PASSED \r\n");
@@ -31,21 +35,20 @@ bool test_cell_voltage(uint16_t test_min, uint16_t test_max){
     }
 }
 
-/*
 bool test_balance_output(){
-    balance_out.write(0); // switch balancing off
+    balance_out->write(0); // switch balancing off
     printf("Balance Output set to Low, measure current and then press any key to continue... \n\r");
-    char c;
-    //while(1)
-    //{
-    device.read(&c, 1);
-    balance_out.write(1); // switch balancing on
+    // char c;
+    // device.read(&c, 1);
+    thread_sleep_for(2000);
+    balance_out->write(1); // switch balancing on
     printf("Balance Output set to High, measure current. Did test pass (y/n)? \n\r");
-    device.read(&c, 1);
-    balance_out.write(0); // switch balancing off
-    if(c=='y'){
-        return true;
-    }
+    // device.read(&c, 1);
+    thread_sleep_for(2000);
+    balance_out->write(0); // switch balancing off
+    // if(c=='y'){
+    //     return true;
+    // }
 
     return false;
 }
@@ -68,13 +71,13 @@ bool test_cell_temperature(float test_min, float test_max){
 
 void test_sleep()
 {
-    char c;
+    // char c;
     printf("Board not sleeping right now, press any key to go to sleep...  \n\r");
-    device.read(&c, 1);
+    // device.read(&c, 1);
     sleep();
 
 }
-*/
+#endif
 
 int main() {
 #ifdef STM32F042x6
@@ -97,7 +100,9 @@ int main() {
         // do nothing
         led2 = led2 ^ 1;
         printf("Hello! \r\n");
+#ifdef TESTING
         test_cell_voltage(0,1);
+#endif
         thread_sleep_for(1000);
         printf("\r\n");
     }
