@@ -13,6 +13,12 @@ DigitalOut charge_contactor(CHARGE_CONTACTOR_CTRL);
 DigitalOut discharge_contactor(DISCHARGE_CONTACTOR_CTRL);
 DigitalOut test_point_0(UNUSED_PIN_0);
 
+CAN intCan(INT_CAN_RX, INT_CAN_TX);
+CAN extCan(EXT_CAN_RX, EXT_CAN_TX);
+
+DigitalOut intCanStby(INT_CAN_STBY);
+DigitalOut extCanStby(EXT_CAN_STBY);
+
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
     int v_int = (int)v;
@@ -32,7 +38,7 @@ bool test_pack_voltage(float test_min, float test_max){
 bool test_pack_current(float test_min, float test_max){
     float i = pack_current.read();
     int i_int = (int)i;
-    int i_dec = (int)(i/100);
+    int i_dec = (int)(i*100);
     printf("%d.%d\n\r", i_int, i_dec);
     if(i>=test_min && i<=test_max){
         printf("Pack Current Test PASSED \n\r");
@@ -51,11 +57,11 @@ bool test_fan_output(){
     fan_pwm.write(0.0);
     printf("Fan ctrl set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
-    fan_ctrl.write(0.0);
+    fan_ctrl.write(1);
     fan_pwm.write(0.1);
     printf("Fan ctrl set to High, PWM set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
-    fan_ctrl.write(0.0);
+    fan_ctrl.write(1);
     fan_pwm.write(0.9);
     printf("Fan ctrl set to High, PWM set to High, Did test pass (y/n)? \n\r");
     device.read(&c, 1);
@@ -120,6 +126,8 @@ int main() {
         test_point_0 = test_point_0 ^ 1;
         printf("writing \n\r");
         test_pack_voltage(0, 1);
+        test_pack_current(0, 1);
+        // test_fan_output();
         thread_sleep_for(1000);
         printf("\r\n");
     }
