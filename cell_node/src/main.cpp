@@ -2,6 +2,7 @@
 #include "pindef.h"
 
 // #define TESTING // only defined when using test functions
+#define PRINTING // only defined when using printf functions
 
 // This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
@@ -97,6 +98,17 @@ void test_sleep()
 }
 #endif
 
+#ifdef PRINTING
+void printFloat(int num) {
+    float numFloat = (float)(num);
+    int right = (int)(numFloat);
+    numFloat /= 100;
+    int left = (int)(numFloat);
+    right -= left * 100;
+    printf("%d.%d", left, right);
+}
+#endif
+
 int main() {
 #ifdef STM32F042x6
     __HAL_REMAP_PIN_ENABLE(HAL_REMAP_PA11_PA12);
@@ -111,7 +123,9 @@ int main() {
     DigitalOut led2(LED2);
 
 
+#ifdef PRINTING
     printf("start of main()\r\n");
+#endif
 
 
 
@@ -123,15 +137,26 @@ int main() {
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif
+
         float v = cell_volt.read() * CELL_VOLT_MULT;
         current_cell_volt = (uint16_t)(v*100);
-        printf("Cell Voltage: %d\r\n", current_cell_volt);
+#ifdef PRINTING
+        printf("Cell Voltage: ");
+        printFloat(current_cell_volt);
+        printf("\r\n");
+#endif
 
         float t = T(cell_temp.read() * CELL_TEMP_MULT);
         current_cell_temp = (int16_t)(t*100);
-        printf("Cell Temperature: %d\r\n", current_cell_temp);
+#ifdef PRINTING
+        printf("Cell Temperature: ");
+        printFloat(current_cell_temp);
+        printf("\r\n");
+#endif
 
         thread_sleep_for(1000);
+#ifdef PRINTING
         printf("\r\n");
+#endif
     }
 }
