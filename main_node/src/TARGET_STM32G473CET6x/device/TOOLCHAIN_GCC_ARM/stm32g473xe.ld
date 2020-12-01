@@ -26,10 +26,10 @@
   #define MBED_APP_SIZE  MBED_ROM_SIZE
 #endif
 
-#if !defined(MBED_BOOT_STACK_SIZE)
+#if !defined(MBED_CONF_TARGET_BOOT_STACK_SIZE)
     /* This value is normally defined by the tools
        to 0x1000 for bare metal and 0x400 for RTOS */
-    #define MBED_BOOT_STACK_SIZE  0x400
+    #define MBED_CONF_TARGET_BOOT_STACK_SIZE  0x400
 #endif
 
 /* Round up VECTORS_SIZE to 8 bytes */
@@ -111,10 +111,7 @@ SECTIONS
     } > FLASH
     __exidx_end = .;
 
-    /* Location counter can end up 2byte aligned with narrow Thumb code but
-       __etext is assumed by startup code to be the LMA of a section in RAM
-       which must be 8-byte aligned */
-    __etext = ALIGN (8);
+    __etext = .;
     _sidata = .;
     
     .data : AT (__etext)
@@ -182,7 +179,7 @@ SECTIONS
         __end__ = .;
         PROVIDE(end = .);
         *(.heap*)
-        . = ORIGIN(RAM) + LENGTH(RAM) - MBED_BOOT_STACK_SIZE;
+        . = ORIGIN(RAM) + LENGTH(RAM) - MBED_CONF_TARGET_BOOT_STACK_SIZE;
         __HeapLimit = .;
     } > RAM
 
@@ -198,7 +195,7 @@ SECTIONS
      * size of stack_dummy section */
     __StackTop = ORIGIN(RAM) + LENGTH(RAM);
     _estack = __StackTop;
-    __StackLimit = __StackTop - MBED_BOOT_STACK_SIZE;
+    __StackLimit = __StackTop - MBED_CONF_TARGET_BOOT_STACK_SIZE;
     PROVIDE(__stack = __StackTop);
 
     /* Check if data + heap + stack exceeds RAM limit */
