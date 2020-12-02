@@ -4,6 +4,10 @@
 // #define TESTING // only defined when using test functions
 #define PRINTING // only defined when using printf functions
 
+#ifdef PRINTING
+#include "Printing.h"
+#endif
+
 // This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
 
@@ -236,19 +240,6 @@ void test_sleep()
 }
 #endif
 
-#ifdef PRINTING
-// Input: an integer representing a float with 2 digits past decimal multiplied by 100
-// Output: print num as a float
-void printFloat(int num) {
-    float numFloat = (float)(num);
-    int right = (int)(numFloat);
-    numFloat /= 100;
-    int left = (int)(numFloat);
-    right -= left * 100;
-    printf("%d.%d", left, right);
-}
-#endif
-
 // float get_cell_temperature(){
 //     float t_voltage = cell_temp.read()*VDD;
 //     for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
@@ -266,15 +257,13 @@ void printFloat(int num) {
 int16_t get_cell_temperature() {
     float t_direct = cell_temp.read();
     float t = T(t_direct * CELL_TEMP_MULT);
-    int16_t the_cell_temp = (int16_t)(t*100);
+    int32_t the_cell_temp = (int32_t)(t*100);
 #ifdef PRINTING
-    int temp = (int)(t_direct * 100);
-    if(temp >= 100) {
-        temp -= 100;
-    }
-    printf("Direct Cell Temperature: %d.%d\r\n", (int)(t_direct), temp);
+    printf("Direct Cell Temperature: ");
+    printFloat(t_direct);
+    printf("\r\n");
     printf("Cell Temperature: ");
-    printFloat(the_cell_temp);
+    printIntegerAsFloat(the_cell_temp);
     printf(" degrees C\r\n");
 #endif
     return the_cell_temp;
@@ -285,13 +274,11 @@ uint16_t get_cell_voltage() {
     float v = v_direct * CELL_VOLT_MULT;
     uint16_t the_cell_volt = (uint16_t)(v*100);
 #ifdef PRINTING
-    int temp = (int)(v_direct * 100);
-    if(temp > 100) {
-        temp -= 100;
-    }
-    printf("Direct Cell Voltage: %d.%d\r\n", (int)(v_direct), temp);
+    printf("Direct Cell Voltage: ");
+    printFloat(v_direct);
+    printf("\r\n");
     printf("Cell Voltage: ");
-    printFloat(the_cell_volt);
+    printIntegerAsFloat(the_cell_volt);
     printf(" V\r\n");
 #endif
     return the_cell_volt;
