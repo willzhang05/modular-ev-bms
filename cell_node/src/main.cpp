@@ -209,19 +209,6 @@ bool test_balance_output(){
 
     return false;
 }
-float get_cell_temperature(){
-    float t_voltage = cell_temp.read()*VDD;
-    for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
-        if(t_voltage>=t_voltage_output[i] && t_voltage<=t_voltage_output[i+1]){
-            return ((t_voltage-t_voltage_output[i])*(temperature[i+1]-temperature[i])/(t_voltage_output[i+1]-t_voltage_output[i]))+temperature[i]; //SOC based on voltage calibration
-        }
-    }
-    return -100.0;
-}
-float get_cell_voltage(){
-    float v = cell_volt.read()*VDD*(18+33)/33;
-    return v;
-}
 
 bool test_cell_temperature(float test_min, float test_max){
     float t = cell_temp.read();
@@ -250,6 +237,8 @@ void test_sleep()
 #endif
 
 #ifdef PRINTING
+// Input: an integer representing a float with 2 digits past decimal multiplied by 100
+// Output: print num as a float
 void printFloat(int num) {
     float numFloat = (float)(num);
     int right = (int)(numFloat);
@@ -259,6 +248,54 @@ void printFloat(int num) {
     printf("%d.%d", left, right);
 }
 #endif
+
+// float get_cell_temperature(){
+//     float t_voltage = cell_temp.read()*VDD;
+//     for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
+//         if(t_voltage>=t_voltage_output[i] && t_voltage<=t_voltage_output[i+1]){
+//             return ((t_voltage-t_voltage_output[i])*(temperature[i+1]-temperature[i])/(t_voltage_output[i+1]-t_voltage_output[i]))+temperature[i]; //SOC based on voltage calibration
+//         }
+//     }
+//     return -100.0;
+// }
+// float get_cell_voltage(){
+//     float v = cell_volt.read()*VDD*(18+33)/33;
+//     return v;
+// }
+
+int16_t get_cell_temperature() {
+    float t_direct = cell_temp.read();
+    float t = T(t_direct * CELL_TEMP_MULT);
+    int16_t the_cell_temp = (int16_t)(t*100);
+#ifdef PRINTING
+    int temp = (int)(t_direct * 100);
+    if(temp >= 100) {
+        temp -= 100;
+    }
+    printf("Direct Cell Temperature: %d.%d\r\n", (int)(t_direct), temp);
+    printf("Cell Temperature: ");
+    printFloat(the_cell_temp);
+    printf(" degrees C\r\n");
+#endif
+    return the_cell_temp;
+}
+
+uint16_t get_cell_voltage() {
+    float v_direct = cell_volt.read();
+    float v = v_direct * CELL_VOLT_MULT;
+    uint16_t the_cell_volt = (uint16_t)(v*100);
+#ifdef PRINTING
+    int temp = (int)(v_direct * 100);
+    if(temp > 100) {
+        temp -= 100;
+    }
+    printf("Direct Cell Voltage: %d.%d\r\n", (int)(v_direct), temp);
+    printf("Cell Voltage: ");
+    printFloat(the_cell_volt);
+    printf(" V\r\n");
+#endif
+    return the_cell_volt;
+}
 
 int main() {
 #ifdef STM32F042x6
@@ -273,50 +310,19 @@ int main() {
 
     DigitalOut led2(LED2);
 
-
 #ifdef PRINTING
     printf("start of main()\r\n");
 #endif
 
-
-
-    while(1)
-    {
+    while(1) {
         // do nothing
         led2 = led2 ^ 1;
         printf("Hello! \r\n");
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif
-
-        float v_direct = cell_volt.read();
-        float v = v_direct * CELL_VOLT_MULT;
-        current_cell_volt = (uint16_t)(v*100);
-#ifdef PRINTING
-        int temp = (int)(v_direct * 100);
-        if(temp > 100) {
-            temp -= 100;
-        }
-        printf("Direct Cell Voltage: %d.%d\r\n", (int)(v_direct), temp);
-        printf("Cell Voltage: ");
-        printFloat(current_cell_volt);
-        printf(" V\r\n");
-#endif
-
-        float t_direct = cell_temp.read();
-        float t = T(t_direct * CELL_TEMP_MULT);
-        current_cell_temp = (int16_t)(t*100);
-#ifdef PRINTING
-        temp = (int)(t_direct * 100);
-        if(temp >= 100) {
-            temp -= 100;
-        }
-        printf("Direct Cell Temperature: %d.%d\r\n", (int)(t_direct), temp);
-        printf("Cell Temperature: ");
-        printFloat(current_cell_temp);
-        printf(" degrees C\r\n");
-#endif
-
+        current_cell_volt = get_cell_voltage();
+        current_cell_temp = get_cell_temperature();
         thread_sleep_for(1000);
 #ifdef PRINTING
         printf("\r\n");
