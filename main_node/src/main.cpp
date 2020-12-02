@@ -14,13 +14,14 @@ PwmOut fan_pwm(FAN_PWM);
 
 DigitalOut charge_contactor(CHARGE_CONTACTOR_CTRL);
 DigitalOut discharge_contactor(DISCHARGE_CONTACTOR_CTRL);
-DigitalOut test_point_0(UNUSED_PIN_0);
 
 CAN intCan(INT_CAN_RX, INT_CAN_TX);
 CAN extCan(EXT_CAN_RX, EXT_CAN_TX);
 
 DigitalOut intCanStby(INT_CAN_STBY);
 DigitalOut extCanStby(EXT_CAN_STBY);
+
+Ticker intCanTxTicker;
 
 int cell_num = 2;
 int max_cell_node = 50;
@@ -33,6 +34,10 @@ float VDD = 3.3;
 int current_length = 7;
 float c_voltage_output [7] = {0, 0.5, 1, 2.5, 4, 4.5, 5};
 float current [7] = {-2700, -1300, -700, 30, 1300, 1500, 3300};
+
+#ifdef TESTING
+DigitalOut test_point_0(UNUSED_PIN_0);
+#endif //TESTING
 
 #ifdef TESTING
 bool test_pack_voltage(float test_min, float test_max){
@@ -185,6 +190,7 @@ void cell_balancing_logic(){ //Cell balancing based on voltage
     }
     
 }
+
 void fan_logic(){
     if(cell_num>0){
         bool fanOn = false;
@@ -216,10 +222,12 @@ void fan_logic(){
         }
     }
 }
+
 float get_pack_voltage(){
     float v = pack_volt.read()*VDD*(180+90000)/180;
     return v;
 }
+
 float get_cell_voltage(){
     float c_voltage = pack_current.read()*VDD;
     for(int i =0;i<current_length-1;i++){ //Voltage calibration
@@ -229,25 +237,69 @@ float get_cell_voltage(){
     }
     return -2800.0;
 }
+
+// WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
+// This method is Thread safe (CAN is Thread safe)
+bool sendCANMessage(const char *data, const unsigned char len = 8)
+{
+    if (len > 8 || !intCan.write(CANMessage(2, data, len)))
+        return false;
+
+    return true;
+}
+
+// WARNING: This method will be called in an ISR context
+void canTxIrqHandler()
+{
+    string toSend = "MainSend";
+    if (sendCANMessage(toSend.c_str(), toSend.length()))
+    {
+#ifdef PRINTING
+        printf("Message sent: %s\r\n", toSend.c_str()); // This should be removed except for testing CAN
+#endif //PRINTING
+    }
+}
+
+// WARNING: This method will be called in an ISR context
+void canRxIrqHandler()
+{
+    CANMessage receivedCANMessage;
+    while (intCan.read(receivedCANMessage))
+    {
+#ifdef PRINTING
+        printf("Message received: %s\r\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
+#endif //PRINTING
+    }
+}
+
+void canInit()
+{
+    intCanTxTicker.attach(&canTxIrqHandler, 1); // float, in seconds
+    intCan.attach(&canRxIrqHandler, CAN::RxIrq);
+    intCanStby = 0;
+}
+
 int main() {
     // device.set_baud(38400);
 #ifdef PRINTING
     printf("start main() \n\r");
 #endif //PRINTING
 
+    canInit();
+
     while(1){
+#ifdef PRINTING
+        printf("main thread loop\r\n");
+#endif //PRINTING
 #ifdef TESTING
         test_point_0 = test_point_0 ^ 1;
-#ifdef PRINTING
-        printf("writing \n\r");
-#endif //PRINTING
         test_pack_voltage(0, 1);
         test_pack_current(0, 1);
         // test_fan_output();
+#endif //TESTING
         thread_sleep_for(1000);
 #ifdef PRINTING
         printf("\r\n");
 #endif //PRINTING
-#endif //TESTING
     }
 }
