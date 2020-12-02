@@ -280,6 +280,11 @@ void canInit()
 }
 
 int main() {
+    // This is only necessary if using software reset (not NRST pin)
+    HAL_DBGMCU_DisableDBGSleepMode();
+    HAL_DBGMCU_DisableDBGStandbyMode();
+    HAL_DBGMCU_DisableDBGStopMode();
+
     // device.set_baud(38400);
 #ifdef PRINTING
     printf("start main() \n\r");
