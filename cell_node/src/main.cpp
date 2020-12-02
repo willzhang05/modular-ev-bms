@@ -2,7 +2,7 @@
 #include "pindef.h"
 
 // #define TESTING // only defined when using test functions
-#define PRINTING // only defined when using printf functions
+// #define PRINTING // only defined when using printf functions
 
 #ifdef PRINTING
 #include "Printing.h"
@@ -11,8 +11,6 @@
 // This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
 
-AnalogIn cell_volt(CELL_VOLTAGE);
-AnalogIn cell_temp(TEMPERATURE_DATA);
 DigitalOut* balance_out;
 int charge_estimation_state = 0; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 float SOC = 100.0;
@@ -157,6 +155,12 @@ void charge_estimation(float current, float voltage){ //TODO: Check does positiv
 
 CAN* can1;
 
+Ticker canTxTicker;
+
+
+AnalogIn cell_volt(CELL_VOLTAGE);
+AnalogIn cell_temp(TEMPERATURE_DATA);
+
 uint16_t current_cell_volt;
 int16_t current_cell_temp;
 
@@ -240,6 +244,44 @@ void test_sleep()
 }
 #endif
 
+//********** CAN **********
+// WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
+// This method is Thread safe (CAN is Thread safe)
+bool sendCANMessage(const char *data, const unsigned char len = 8) {
+    if (len > 8 || !can1->write(CANMessage(2, data, len))) {
+        return false;
+    }
+    return true;
+}
+
+// WARNING: This method will be called in an ISR context
+void canTxIrqHandler() {
+    string toSend = "CellSend";
+    if (sendCANMessage(toSend.c_str(), toSend.length())) {
+// #ifdef PRINTING
+        printf("Message sent: %s\n", toSend.c_str()); // This should be removed except for testing CAN
+// #endif //PRINTING
+    }
+}
+
+// WARNING: This method will be called in an ISR context
+void canRxIrqHandler() {
+    CANMessage receivedCANMessage;
+    while (can1->read(receivedCANMessage)) {
+// #ifdef PRINTING
+        printf("Message received: %s\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
+// #endif //PRINTING
+    }
+}
+
+void canInit() {
+    canTxTicker.attach(&canTxIrqHandler, 1); // float, in seconds
+    can1->attach(&canRxIrqHandler, CAN::RxIrq);
+}
+//********** End CAN **********
+
+
+//********** Cell Measurements **********
 // float get_cell_temperature(){
 //     float t_voltage = cell_temp.read()*VDD;
 //     for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
@@ -283,6 +325,7 @@ uint16_t get_cell_voltage() {
 #endif
     return the_cell_volt;
 }
+//********** End Cell Measurements **********
 
 int main() {
 #ifdef STM32F042x6
@@ -291,6 +334,7 @@ int main() {
 
     CAN theRealCan1(CAN_RX, CAN_TX);
     can1 = &theRealCan1;
+    canInit();
 
     DigitalOut theRealBalanceOut(BALANCING_CONTROL);
     balance_out = &theRealBalanceOut;
