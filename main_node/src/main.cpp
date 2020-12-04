@@ -1,8 +1,12 @@
 #include <mbed.h>
-#include <pindef.h>
+#include "pindef.h"
 
-// #define TESTING     // only defined if using test functions
+#define TESTING     // only defined if using test functions
 #define PRINTING    // only defined if using printf functions
+
+#ifdef PRINTING
+#include "Printing.h"
+#endif
 
 BufferedSerial device(USBTX, USBRX);
 
@@ -26,10 +30,10 @@ Ticker intCanTxTicker;
 int cell_num = 2;
 int max_cell_node = 50;
 float cell_voltages [50];
-float cell_balancing_thresh = 0.3;
+float cell_balancing_thresh = 0.3f;
 float cell_temperatures [50];
-float temperature_thresh = 30.0;
-float VDD = 3.3;
+float temperature_thresh = 30.0f;
+float VDD = 3.3f;
 
 int current_length = 7;
 float c_voltage_output [7] = {0, 0.5, 1, 2.5, 4, 4.5, 5};
@@ -43,9 +47,9 @@ DigitalOut test_point_0(UNUSED_PIN_0);
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
 #ifdef PRINTING
-    int v_int = (int)v;
-    int v_dec = (int)(v*100);
-    printf("%d.%d\n\r", v_int, v_dec);
+    printf("ADC pack voltage: ");
+    printFloat(v);
+    printf("\r\n");
 #endif //PRINTING
     if(v>=test_min && v<=test_max){
 #ifdef PRINTING
@@ -65,9 +69,9 @@ bool test_pack_voltage(float test_min, float test_max){
 bool test_pack_current(float test_min, float test_max){
     float i = pack_current.read();
 #ifdef PRINTING
-    int i_int = (int)i;
-    int i_dec = (int)(i*100);
-    printf("%d.%d\n\r", i_int, i_dec);
+    printf("ADC pack current: ");
+    printFloat(i);
+    printf("\r\n");
 #endif //PRINTING
     if(i>=test_min && i<=test_max){
 #ifdef PRINTING
@@ -224,8 +228,15 @@ void fan_logic(){
 }
 
 float get_pack_voltage(){
-    float v = pack_volt.read()*VDD*(180+90000)/180;
-    return v;
+    // return (pack_volt.read())*VDD*(2+100)/2*10/15;
+    // return pack_volt.read()*VDD*12/0.3;
+    return pack_volt.read()*12/0.089;
+}
+
+float get_pack_current()
+{
+    // return (pack_current.read()*VDD*2.5/2.14-2.5)*1000/1.5;
+    return (pack_current.read()*2.5/0.64-2.5)*1000/1.5;
 }
 
 float get_cell_voltage(){
@@ -295,6 +306,12 @@ int main() {
     while(1){
 #ifdef PRINTING
         printf("main thread loop\r\n");
+        printf("Pack Voltage: ");
+        printFloat(get_pack_voltage());
+        printf(" V\r\n");
+        printf("Pack Current: ");
+        printFloat(get_pack_current());
+        printf(" A\r\n");
 #endif //PRINTING
 #ifdef TESTING
         test_point_0 = test_point_0 ^ 1;
