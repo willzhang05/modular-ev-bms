@@ -1,8 +1,10 @@
 #include <mbed.h>
 #include "pindef.h"
 
-#define TESTING     // only defined if using test functions
+// #define TESTING     // only defined if using test functions
 #define PRINTING    // only defined if using printf functions
+
+#define NUM_ADC_SAMPLES 10
 
 #ifdef PRINTING
 #include "Printing.h"
@@ -230,13 +232,54 @@ void fan_logic(){
 float get_pack_voltage(){
     // return (pack_volt.read())*VDD*(2+100)/2*10/15;
     // return pack_volt.read()*VDD*12/0.3;
-    return pack_volt.read()*12/0.089;
+    // return pack_volt.read()*12/0.089;
+
+    float v = 0;
+    for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
+        v += pack_volt.read();
+    v /= NUM_ADC_SAMPLES;
+
+#ifdef PRINTING
+    printf("ADC pack voltage: ");
+    printFloat(v);
+    printf("\r\n");
+#endif //PRINTING
+
+    v = v*12/0.09;
+
+#ifdef PRINTING
+    printf("Pack Voltage: ");
+    printFloat(v);
+    printf(" V\r\n");
+#endif //PRINTING
+    return v;
 }
 
 float get_pack_current()
 {
     // return (pack_current.read()*VDD*2.5/2.14-2.5)*1000/1.5;
-    return (pack_current.read()*2.5/0.64-2.5)*1000/1.5;
+    // return (pack_current.read()*2.5/0.658-2.5)*1000/1.5;
+
+    float i = 0;
+    for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
+        i += pack_current.read();
+    i /= NUM_ADC_SAMPLES;
+    
+#ifdef PRINTING
+    printf("ADC pack current: ");
+    printFloat(i);
+    printf("\r\n");
+#endif //PRINTING
+
+    i = (i*2.5/0.65-2.5)*1000/1.5;
+    
+#ifdef PRINTING
+    printf("Pack Current: ");
+    printFloat(i);
+    printf(" A\r\n");
+#endif //PRINTING
+
+    return i;
 }
 
 float get_cell_voltage(){
@@ -306,12 +349,6 @@ int main() {
     while(1){
 #ifdef PRINTING
         printf("main thread loop\r\n");
-        printf("Pack Voltage: ");
-        printFloat(get_pack_voltage());
-        printf(" V\r\n");
-        printf("Pack Current: ");
-        printFloat(get_pack_current());
-        printf(" A\r\n");
 #endif //PRINTING
 #ifdef TESTING
         test_point_0 = test_point_0 ^ 1;
@@ -319,6 +356,8 @@ int main() {
         test_pack_current(0, 1);
         // test_fan_output();
 #endif //TESTING
+        get_pack_voltage();
+        get_pack_current();
         thread_sleep_for(1000);
 #ifdef PRINTING
         printf("\r\n");
