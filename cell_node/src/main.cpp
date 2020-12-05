@@ -12,6 +12,7 @@
 // BufferedSerial device(USBTX, USBRX, 38400);
 
 DigitalOut* balance_out;
+
 int charge_estimation_state = 0; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 float SOC = 100.0;
 float SOH = 100.0;
@@ -275,7 +276,7 @@ void canRxIrqHandler() {
 }
 
 void canInit() {
-    canTxTicker.attach(&canTxIrqHandler, 1); // float, in seconds
+    canTxTicker.attach(&canTxIrqHandler, 1s); // float, in seconds
     can1->attach(&canRxIrqHandler, CAN::RxIrq);
 }
 //********** End CAN **********
