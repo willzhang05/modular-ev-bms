@@ -24,7 +24,7 @@ void printIntegerAsFloat(int num, int decimals) {
     for(int i = 10; i < mult; i*=10)
     {
         if(right < i)
-            printf("0");
+            PRINT("0");
     }
 
     PRINT("%d", right);
