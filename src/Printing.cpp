@@ -4,12 +4,13 @@
 // Input: an integer representing a float with decimals digits past decimal multiplied by 10^decimals
 // Output: print num as a float
 void printIntegerAsFloat(int num, int decimals) {
+#ifdef PRINTING
     int left = num;
     int right = num;
     int d = decimals;
 
     if(left < 0)
-        printf("-");
+        PRINT("-");
     
     int mult = 1;
     for(int i = 0; i < d; ++i)
@@ -18,7 +19,7 @@ void printIntegerAsFloat(int num, int decimals) {
     left = abs(left/mult);
     right = abs(right) - left * mult;
 
-    printf("%d.", left);
+    PRINT("%d.", left);
 
     for(int i = 10; i < mult; i*=10)
     {
@@ -26,12 +27,14 @@ void printIntegerAsFloat(int num, int decimals) {
             printf("0");
     }
 
-    printf("%d", right);
+    PRINT("%d", right);
+#endif //PRINTING
 }
 
 // Input: a float
 // Output: print num as a float
 void printFloat(float num, int decimals) {
+#ifdef PRINTING
     float n = num;
     int d = decimals;
 
@@ -40,4 +43,5 @@ void printFloat(float num, int decimals) {
         mult *= 10;
     
     printIntegerAsFloat((int)(n*mult), d);
+#endif //PRINTING
 }

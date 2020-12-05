@@ -1,16 +1,12 @@
 #include <mbed.h>
 #include "pindef.h"
+#include "Printing.h"
 
 // #define TESTING     // only defined if using test functions
-#define PRINTING    // only defined if using printf functions
 
 #define NUM_ADC_SAMPLES 10
 #define NUM_CELL_NODES  2
 // #define VDD 3.3f
-
-#ifdef PRINTING
-#include "Printing.h"
-#endif
 
 BufferedSerial device(USBTX, USBRX);
 
@@ -44,44 +40,32 @@ DigitalOut test_point_0(UNUSED_PIN_0);
 #ifdef TESTING
 bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
-#ifdef PRINTING
-    printf("ADC pack voltage: ");
+    PRINT("ADC pack voltage: ");
     printFloat(v, 2);
-    printf("\r\n");
-#endif //PRINTING
+    PRINT("\r\n");
     if(v>=test_min && v<=test_max){
-#ifdef PRINTING
-        printf("Pack Voltage Test PASSED \n\r");
-#endif //PRINTING
+        PRINT("Pack Voltage Test PASSED \n\r");
         return true;
     }
     else
     {
-#ifdef PRINTING
-        printf("Pack Voltage Test FAILED \n\r");
-#endif //PRINTING
+        PRINT("Pack Voltage Test FAILED \n\r");
         return false; 
     }
 }
 
 bool test_pack_current(float test_min, float test_max){
     float i = pack_current.read();
-#ifdef PRINTING
-    printf("ADC pack current: ");
+    PRINT("ADC pack current: ");
     printFloat(i, 2);
-    printf("\r\n");
-#endif //PRINTING
+    PRINT("\r\n");
     if(i>=test_min && i<=test_max){
-#ifdef PRINTING
-        printf("Pack Current Test PASSED \n\r");
-#endif //PRINTING
+        PRINT("Pack Current Test PASSED \n\r");
         return true;
     }
     else
     {
-#ifdef PRINTING
-        printf("Pack Current Test FAILED \n\r");
-#endif //PRINTING
+        PRINT("Pack Current Test FAILED \n\r");
         return false; 
     }
 }
@@ -90,21 +74,15 @@ bool test_fan_output(){
     char c;
     fan_ctrl.write(0);
     fan_pwm.write(0.0);
-#ifdef PRINTING
-    printf("Fan ctrl set to Low, press any key to continue...  \n\r");
-#endif //PRINTING
+    PRINT("Fan ctrl set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
     fan_ctrl.write(1);
     fan_pwm.write(0.1);
-#ifdef PRINTING
-    printf("Fan ctrl set to High, PWM set to Low, press any key to continue...  \n\r");
-#endif //PRINTING
+    PRINT("Fan ctrl set to High, PWM set to Low, press any key to continue...  \n\r");
     device.read(&c, 1);
     fan_ctrl.write(1);
     fan_pwm.write(0.9);
-#ifdef PRINTING
-    printf("Fan ctrl set to High, PWM set to High, Did test pass (y/n)? \n\r");
-#endif //PRINTING
+    PRINT("Fan ctrl set to High, PWM set to High, Did test pass (y/n)? \n\r");
     device.read(&c, 1);
     fan_ctrl.write(0);
     fan_pwm.write(0.0);
@@ -117,17 +95,13 @@ bool test_fan_output(){
 
 bool test_discharge_contactor(){
     discharge_contactor.write(0); // switch balancing off
-#ifdef PRINTING
-    printf("Discharge Contactor Output set to Low, measure current and then press any key to continue... \n\r");
-#endif //PRINTING
+    PRINT("Discharge Contactor Output set to Low, measure current and then press any key to continue... \n\r");
     char c;
     //while(1)
     //{
     device.read(&c, 1);
     discharge_contactor.write(1); // switch balancing on
-#ifdef PRINTING
-    printf("Discharge Contactor Output set to High, measure current. Did test pass (y/n)? \n\r");
-#endif //PRINTING
+    PRINT("Discharge Contactor Output set to High, measure current. Did test pass (y/n)? \n\r");
     device.read(&c, 1);
     discharge_contactor.write(0); // switch balancing off
     if(c=='y'){
@@ -139,17 +113,13 @@ bool test_discharge_contactor(){
 
 bool test_charge_contactor(){
     charge_contactor.write(0); // switch balancing off
-#ifdef PRINTING
-    printf("Charge Contactor Output set to Low, measure current and then press any key to continue... \n\r");
-#endif //PRINTING
+    PRINT("Charge Contactor Output set to Low, measure current and then press any key to continue... \n\r");
     char c;
     //while(1)
     //{
     device.read(&c, 1);
     charge_contactor.write(1); // switch balancing on
-#ifdef PRINTING
-    printf("Ccharge Contactor Output set to High, measure current. Did test pass (y/n)? \n\r");
-#endif //PRINTING
+    PRINT("Ccharge Contactor Output set to High, measure current. Did test pass (y/n)? \n\r");
     device.read(&c, 1);
     charge_contactor.write(0); // switch balancing off
     if(c=='y'){
@@ -162,9 +132,7 @@ bool test_charge_contactor(){
 void test_sleep()
 {
     char c;
-#ifdef PRINTING
-    printf("Board not sleeping right now, press any key to go to sleep...  \n\r");
-#endif //PRINTING
+    PRINT("Board not sleeping right now, press any key to go to sleep...  \n\r");
     device.read(&c, 1);
     sleep();
 
@@ -230,19 +198,16 @@ float get_pack_voltage(){
         v += pack_volt.read();
     v /= NUM_ADC_SAMPLES;
 
-#ifdef PRINTING
-    printf("ADC pack voltage: ");
+    PRINT("ADC pack voltage: ");
     printFloat(v, 5);
-    printf("\r\n");
-#endif //PRINTING
+    PRINT("\r\n");
 
     v = v*12/0.09;
 
-#ifdef PRINTING
-    printf("Pack Voltage: ");
+    PRINT("Pack Voltage: ");
     printFloat(v, 2);
-    printf(" V\r\n");
-#endif //PRINTING
+    PRINT(" V\r\n");
+    
     return v;
 }
 
@@ -256,14 +221,12 @@ float get_pack_current()
         i += pack_current.read();
     i /= NUM_ADC_SAMPLES;
     
-#ifdef PRINTING
-    printf("ADC pack current: ");
+    PRINT("ADC pack current: ");
     printFloat(i, 5);
-    printf("\r\n");
-    printf("ADC pack current offset: ");
+    PRINT("\r\n");
+    PRINT("ADC pack current offset: ");
     printFloat(i-zero_current_ADC, 5);
-    printf("\r\n");
-#endif //PRINTING
+    PRINT("\r\n");
 
     // i = (i*2.5/0.65-2.5)*1000/1.5;
     // i = (i*1.65/0.5-1.65)*100/1.65;
@@ -278,11 +241,9 @@ float get_pack_current()
     // i = (i-zero_current_ADC)*1.93/0.009;
     i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*3.3f;
     
-#ifdef PRINTING
-    printf("Pack Current: ");
+    PRINT("Pack Current: ");
     printFloat(i, 2);
-    printf(" A\r\n");
-#endif //PRINTING
+    PRINT(" A\r\n");
 
     return i;
 }
@@ -303,9 +264,7 @@ void canTxIrqHandler()
     string toSend = "MainSend";
     if (sendCANMessage(toSend.c_str(), toSend.length()))
     {
-#ifdef PRINTING
-        printf("Message sent: %s\r\n", toSend.c_str()); // This should be removed except for testing CAN
-#endif //PRINTING
+        PRINT("Message sent: %s\r\n", toSend.c_str()); // This should be removed except for testing CAN
     }
 }
 
@@ -315,9 +274,7 @@ void canRxIrqHandler()
     CANMessage receivedCANMessage;
     while (intCan.read(receivedCANMessage))
     {
-#ifdef PRINTING
-        printf("Message received: %s\r\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
-#endif //PRINTING
+        PRINT("Message received: %s\r\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
     }
 }
 
@@ -337,11 +294,9 @@ void currentSensorInit()
 
     zero_current_ADC = i;
 
-#ifdef PRINTING
-    printf("Calibrated Current sensor to ADC value of: ");
+    PRINT("Calibrated Current sensor to ADC value of: ");
     printFloat(zero_current_ADC, 5);
-    printf("\r\n");
-#endif //PRINTING
+    PRINT("\r\n");
 }
 
 int main() {
@@ -351,18 +306,14 @@ int main() {
     HAL_DBGMCU_EnableDBGStopMode();
 
     // device.set_baud(38400);
-#ifdef PRINTING
-    printf("start main() \n\r");
-#endif //PRINTING
+    PRINT("start main() \n\r");
 
     canInit();
     thread_sleep_for(2000);
     currentSensorInit();
 
     while(1){
-#ifdef PRINTING
-        printf("main thread loop\r\n");
-#endif //PRINTING
+        PRINT("main thread loop\r\n");
 #ifdef TESTING
         test_point_0 = test_point_0 ^ 1;
         test_pack_voltage(0, 1);
@@ -372,8 +323,6 @@ int main() {
         get_pack_voltage();
         get_pack_current();
         thread_sleep_for(1000);
-#ifdef PRINTING
-        printf("\r\n");
-#endif //PRINTING
+        PRINT("\r\n");
     }
 }
