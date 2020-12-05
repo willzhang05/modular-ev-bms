@@ -20,20 +20,25 @@ void printIntegerAsFloat(int num) {
 // Input: a float
 // Output: print num as a float
 void printFloat(float num) {
-    int left = (int)(num);
-    int right = (int)(num * 10000);
+    int left = abs((int)(num));
+    int right = abs((int)(num * 10000));
     right -= left * 10000;
-    right = abs(right);
+    string toPrint = "";
+    if(num < 0)
+        toPrint += "-";
+    toPrint += "%d.";
     if(right < 10) {
-        printf("%d.000%d", left, right);
+        toPrint += "0";
+        // printf("%d.000%d", left, right);
     }
-    else if(right<100) {
-        printf("%d.00%d", left, right);
+    if(right<100) {
+        toPrint += "0";
+        // printf("%d.00%d", left, right);
     }
-    else if(right<1000) {
-        printf("%d.0%d", left, right);
+    if(right<1000) {
+        toPrint += "0";
+        // printf("%d.0%d", left, right);
     }
-    else {
-        printf("%d.%d", left, right);
-    }
+    toPrint += "%d";
+    printf(toPrint.c_str(), left, right);
 }
