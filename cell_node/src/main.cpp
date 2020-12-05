@@ -1,5 +1,6 @@
 #include <mbed.h>
 #include "pindef.h"
+#include "CANStructs.h"
 
 // #define TESTING // only defined when using test functions
 #define PRINTING // only defined when using printf functions
@@ -162,8 +163,8 @@ Ticker canTxTicker;
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
 
-uint16_t current_cell_volt;
-int16_t current_cell_temp;
+uint16_t current_cell_volt; // 0V to 5V, units of 0.0001V
+int8_t current_cell_temp;  // -40degC to +80degC, units of 1degC
 
 // multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
 #define CELL_VOLT_MULT  (6.75f)     // experimental value
@@ -257,6 +258,9 @@ bool sendCANMessage(const char *data, const unsigned char len = 8) {
 
 // WARNING: This method will be called in an ISR context
 void canTxIrqHandler() {
+    CellData dataToSend;
+    dataToSend.CellVolt = current_cell_volt;
+    dataToSend.CellTemp = current_cell_temp;
     string toSend = "CellSend";
     if (sendCANMessage(toSend.c_str(), toSend.length())) {
 #ifdef PRINTING
@@ -300,14 +304,12 @@ void canInit() {
 int16_t get_cell_temperature() {
     float t_direct = cell_temp.read();
     float t = T(t_direct * CELL_TEMP_MULT);
-    int32_t the_cell_temp = (int32_t)(t*100);
+    int8_t the_cell_temp = (int8_t)(t);
 #ifdef PRINTING
     printf("Direct Cell Temperature: ");
     printFloat(t_direct);
     printf("\r\n");
-    printf("Cell Temperature: ");
-    printIntegerAsFloat(the_cell_temp);
-    printf(" degrees C\r\n");
+    printf("Cell Temperature: %d degrees C\r\n", the_cell_temp);
 #endif
     return the_cell_temp;
 }
@@ -315,7 +317,7 @@ int16_t get_cell_temperature() {
 uint16_t get_cell_voltage() {
     float v_direct = cell_volt.read();
     float v = v_direct * CELL_VOLT_MULT;
-    uint16_t the_cell_volt = (uint16_t)(v*100);
+    uint16_t the_cell_volt = (uint16_t)(v*10000);
 #ifdef PRINTING
     printf("Direct Cell Voltage: ");
     printFloat(v_direct);
