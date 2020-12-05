@@ -348,7 +348,9 @@ int main() {
     while(1) {
         // do nothing
         led2 = led2 ^ 1;
+#ifdef PRINTING
         printf("Hello! \r\n");
+#endif
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif
