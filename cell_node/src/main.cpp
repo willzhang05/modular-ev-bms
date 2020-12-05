@@ -2,7 +2,7 @@
 #include "pindef.h"
 
 // #define TESTING // only defined when using test functions
-// #define PRINTING // only defined when using printf functions
+#define PRINTING // only defined when using printf functions
 
 #ifdef PRINTING
 #include "Printing.h"
@@ -167,7 +167,7 @@ int16_t current_cell_temp;
 // multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
 #define CELL_VOLT_MULT  (6.75f)     // experimental value
 // multiplier from AnalogIn reading [0, 1] to voltage (mV) used for Cell Temperature formula [0, 3300]
-#define CELL_TEMP_MULT  (3300.0f)
+#define CELL_TEMP_MULT  (3800.0f)   // experimental value for AnalogIn reading 0.23 = 25 C Temperature
 // Formula taken from LMT84 datasheet, section 8.3
 // (T1, V1) are the minimum temperature's coordinates
 // (T2, V2) are the maximum temperature's coordinates
@@ -258,9 +258,9 @@ bool sendCANMessage(const char *data, const unsigned char len = 8) {
 void canTxIrqHandler() {
     string toSend = "CellSend";
     if (sendCANMessage(toSend.c_str(), toSend.length())) {
-// #ifdef PRINTING
+#ifdef PRINTING
         printf("Message sent: %s\n", toSend.c_str()); // This should be removed except for testing CAN
-// #endif //PRINTING
+#endif //PRINTING
     }
 }
 
@@ -348,7 +348,9 @@ int main() {
     while(1) {
         // do nothing
         led2 = led2 ^ 1;
+#ifdef PRINTING
         printf("Hello! \r\n");
+#endif
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif
