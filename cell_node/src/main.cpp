@@ -7,7 +7,7 @@
 
 #ifdef PRINTING
 #include "Printing.h"
-#endif
+#endif //PRINTING
 
 // This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
@@ -244,13 +244,16 @@ void test_sleep()
     sleep();
 
 }
-#endif
+#endif //TESTING
 
 //********** CAN **********
+#define DEVICE_ID           2   // hard-coded ID for each cell node
+#define CELL_DATA_PRIORITY  2
+
 // WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
 // This method is Thread safe (CAN is Thread safe)
-bool sendCANMessage(const char *data, const unsigned char len = 8) {
-    if (len > 8 || !can1->write(CANMessage(2, data, len))) {
+bool sendCANMessage(int messageID, const char *data, const unsigned char len = 8) {
+    if (len > 8 || !can1->write(CANMessage(messageID, data, len))) {
         return false;
     }
     return true;
@@ -261,7 +264,7 @@ void canTxIrqHandler() {
     CellData toSend;
     toSend.CellVolt = current_cell_volt;
     toSend.CellTemp = current_cell_temp;
-    if (sendCANMessage((char*)&toSend, sizeof(toSend))) {
+    if (sendCANMessage(GET_CAN_MESSAGE_ID(DEVICE_ID, CELL_DATA_PRIORITY), (char*)&toSend, sizeof(toSend))) {
 #ifdef PRINTING
         printf("Message sent!\n"); // This should be removed except for testing CAN
 #endif //PRINTING
@@ -272,13 +275,17 @@ void canTxIrqHandler() {
 void canRxIrqHandler() {
     CANMessage receivedCANMessage;
     while (can1->read(receivedCANMessage)) {
-// #ifdef PRINTING
+        uint32_t messageID = receivedCANMessage.id;
+#ifdef PRINTING
         printf("Message received: %s\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
-// #endif //PRINTING
+#endif //PRINTING
     }
 }
 
 void canInit() {
+    CAN theRealCan1(CAN_RX, CAN_TX);
+    can1 = &theRealCan1;
+
     canTxTicker.attach(&canTxIrqHandler, 1s); // float, in seconds
     can1->attach(&canRxIrqHandler, CAN::RxIrq);
 }
@@ -309,7 +316,7 @@ int16_t get_cell_temperature() {
     printFloat(t_direct, 4);
     printf("\r\n");
     printf("Cell Temperature: %d degrees C\r\n", the_cell_temp);
-#endif
+#endif //PRINTING
     return the_cell_temp;
 }
 
@@ -324,7 +331,7 @@ uint16_t get_cell_voltage() {
     printf("Cell Voltage: ");
     printIntegerAsFloat(the_cell_volt, 4);
     printf(" V\r\n");
-#endif
+#endif //PRINTING
     return the_cell_volt;
 }
 //********** End Cell Measurements **********
@@ -332,10 +339,7 @@ uint16_t get_cell_voltage() {
 int main() {
 #ifdef STM32F042x6
     __HAL_REMAP_PIN_ENABLE(HAL_REMAP_PA11_PA12);
-#endif
-
-    CAN theRealCan1(CAN_RX, CAN_TX);
-    can1 = &theRealCan1;
+#endif //STM32F042x6
     canInit();
 
     DigitalOut theRealBalanceOut(BALANCING_CONTROL);
@@ -345,22 +349,22 @@ int main() {
 
 #ifdef PRINTING
     printf("start of main()\r\n");
-#endif
+#endif //PRINTING
 
     while(1) {
         // do nothing
         led2 = led2 ^ 1;
 #ifdef PRINTING
         printf("Hello! \r\n");
-#endif
+#endif //PRINTING
 #ifdef TESTING
         test_cell_voltage(0,1);
-#endif
+#endif //TESTING
         current_cell_volt = get_cell_voltage();
         current_cell_temp = get_cell_temperature();
-        thread_sleep_for(1000);
+        // thread_sleep_for(1000);
 #ifdef PRINTING
         printf("\r\n");
-#endif
+#endif //PRINTING
     }
 }
