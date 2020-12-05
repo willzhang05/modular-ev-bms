@@ -258,13 +258,12 @@ bool sendCANMessage(const char *data, const unsigned char len = 8) {
 
 // WARNING: This method will be called in an ISR context
 void canTxIrqHandler() {
-    CellData dataToSend;
-    dataToSend.CellVolt = current_cell_volt;
-    dataToSend.CellTemp = current_cell_temp;
-    string toSend = "CellSend";
-    if (sendCANMessage(toSend.c_str(), toSend.length())) {
+    CellData toSend;
+    toSend.CellVolt = current_cell_volt;
+    toSend.CellTemp = current_cell_temp;
+    if (sendCANMessage((char*)&toSend, sizeof(toSend))) {
 #ifdef PRINTING
-        printf("Message sent: %s\n", toSend.c_str()); // This should be removed except for testing CAN
+        printf("Message sent!\n"); // This should be removed except for testing CAN
 #endif //PRINTING
     }
 }
@@ -307,7 +306,7 @@ int16_t get_cell_temperature() {
     int8_t the_cell_temp = (int8_t)(t);
 #ifdef PRINTING
     printf("Direct Cell Temperature: ");
-    printFloat(t_direct);
+    printFloat(t_direct, 4);
     printf("\r\n");
     printf("Cell Temperature: %d degrees C\r\n", the_cell_temp);
 #endif
@@ -320,10 +319,10 @@ uint16_t get_cell_voltage() {
     uint16_t the_cell_volt = (uint16_t)(v*10000);
 #ifdef PRINTING
     printf("Direct Cell Voltage: ");
-    printFloat(v_direct);
+    printFloat(v_direct, 4);
     printf("\r\n");
     printf("Cell Voltage: ");
-    printIntegerAsFloat(the_cell_volt);
+    printIntegerAsFloat(the_cell_volt, 4);
     printf(" V\r\n");
 #endif
     return the_cell_volt;
