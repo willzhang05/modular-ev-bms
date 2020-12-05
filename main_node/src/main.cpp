@@ -6,6 +6,7 @@
 
 #define NUM_ADC_SAMPLES 10
 #define NUM_CELL_NODES  2
+#define NUM_PARALLEL_CELL 3
 // #define VDD 3.3f
 
 BufferedSerial device(USBTX, USBRX);
@@ -26,6 +27,30 @@ DigitalOut intCanStby(INT_CAN_STBY);
 DigitalOut extCanStby(EXT_CAN_STBY);
 
 Ticker intCanTxTicker;
+int charge_estimation_state[NUM_CELL_NODES]; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
+float SOC[NUM_CELL_NODES];
+float SOH[NUM_CELL_NODES];
+float DOD[NUM_CELL_NODES];
+
+float min_current_thresh = 0.001; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
+float min_current_charging_thresh = 0.1;
+float min_voltage_diff = 0.001;
+float last_voltage[NUM_CELL_NODES];
+
+int constant_voltage_count = 0;
+int constant_voltage_count_thresh = 5;
+
+float rated_capacity = 12060*NUM_PARALLEL_CELL; //3350 mAh in Coulombs
+float dt = 0.1; //seconds
+
+float max_voltage = 4.2;
+float min_voltage = 2.5;
+
+float VDD = 3.3;
+
+int callibrate_length = 7;
+float voltage_callibrate [7] = {0, 2.5, 2.8, 3.3, 3.6, 4.2, 10};
+float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
 
 float cell_voltages[NUM_CELL_NODES];
 float cell_balancing_thresh = 0.3f;
@@ -138,7 +163,119 @@ void test_sleep()
 
 }
 #endif //TESTING
-
+void init_cell_SOC(int index)
+{
+    charge_estimation_state[index] = 0;
+    SOC[index] = 100.0;
+    SOH[index] = 100.0;
+    DOD[index] = 0.0;
+    last_voltage[index] = 0.0;
+}
+void SOC_estimation_update(float current, float voltage, int index) //TODO: Check does positive current mean charging or discharging
+{
+    if(charge_estimation_state[index]==0){ //Initial State
+        if(current>min_current_thresh){
+            charge_estimation_state[index] = 3;
+        }
+        else if(current<-min_current_thresh){
+            charge_estimation_state[index] = 2;
+        }
+        else{
+            charge_estimation_state[index] = 1;
+        }
+    }
+    else if(charge_estimation_state[index]==1){ //Transitional State
+        if(current>min_current_thresh){
+            charge_estimation_state[index] = 3;
+        }
+        else if(current<-min_current_thresh){
+            charge_estimation_state[index] = 2;
+        }
+        else{
+            float voltage_diff = voltage-last_voltage[index];
+            if(voltage_diff<=min_voltage_diff && voltage_diff>=-min_voltage_diff)
+            {
+                constant_voltage_count++;
+            }
+            else{
+                constant_voltage_count = 0;
+            }
+            if(constant_voltage_count>=constant_voltage_count_thresh){
+                charge_estimation_state[index] = 4;
+            }
+        }
+    }
+    else if(charge_estimation_state[index]==2){ //Charge State , assumes negative current
+        if(current>min_current_thresh){
+            charge_estimation_state[index] = 3;
+        }
+        else if(current>-min_current_thresh){ // Current is essentially 0
+            charge_estimation_state[index] = 1;
+        }
+        else if(current>-min_current_charging_thresh || voltage>=max_voltage){ //Current is low or voltage is high, so charging is done
+            charge_estimation_state[index] = 5;
+        }
+        else{ // calculate DOD and SOC
+            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            SOC[index] = SOH[index] - DOD[index];
+        }
+    }
+    else if(charge_estimation_state[index]==3){ //Discharge State , assumes positive current
+        if(current<-min_current_thresh){
+            charge_estimation_state[index] = 2;
+        }
+        else if(current<min_current_thresh){ // Current is essentially 0
+            charge_estimation_state[index] = 1;
+        }
+        else if(voltage<=min_voltage){ //Finished Discharging
+            charge_estimation_state[index] = 6;
+        }
+        else{
+            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            SOC[index] = SOH[index] - DOD[index];
+        }
+    }
+    else if(charge_estimation_state[index]==4){ //Equilibrium, check voltage
+        if(current>min_current_thresh){
+            charge_estimation_state[index] = 3;
+        }
+        else if(current<-min_current_thresh){
+            charge_estimation_state[index] = 2;
+        }
+        else{
+            for(int i =0;i<callibrate_length-1;i++){ //Voltage calibration
+                if(voltage>=voltage_callibrate[i] && voltage<=voltage_callibrate[i+1]){
+                    float SOC_voltage = ((voltage-voltage_callibrate[i])*(SOC_callibrate[i+1]-SOC_callibrate[i])/(voltage_callibrate[i+1]-voltage_callibrate[i]))+SOC_callibrate[i]; //SOC based on voltage calibration
+                    
+                    SOC[index] = SOC_voltage;
+                    DOD[index] = SOH[index]-SOC[index];
+                }
+            }
+        }
+    }
+    else if(charge_estimation_state[index]==5){ //Fully Ccharged
+        //TODO: Send signal to turn off Charging contactors
+        //TODO: Possibly add voltage calibration
+        SOH[index] = SOC[index];
+        if(current>min_current_thresh){
+            charge_estimation_state[index] = 3;
+        }
+        else if(current>-min_current_thresh){
+            charge_estimation_state[index] = 1;
+        }
+    }
+    else if(charge_estimation_state[index]==6){ //Fully discharged
+    //TODO: Send signal to turn off Disharging contactors
+        SOH[index] = DOD[index];
+        if(current<-min_current_thresh){
+            charge_estimation_state[index] = 2; //Go to charging state
+        }
+        else if(current<min_current_thresh){
+            charge_estimation_state[index] = 1; //Transition state
+        }
+    }
+    last_voltage[index] = voltage;
+}
 void cell_balancing_logic(){ //Cell balancing based on voltage
     float min_cell_voltage = cell_voltages[0];
     for(int i = 0; i < NUM_CELL_NODES; ++i)
