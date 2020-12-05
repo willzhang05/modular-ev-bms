@@ -35,6 +35,7 @@ float cell_voltages[NUM_CELL_NODES];
 float cell_balancing_thresh = 0.3f;
 float cell_temperatures [NUM_CELL_NODES];
 float temperature_thresh = 30.0f;
+float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
 #ifdef TESTING
 DigitalOut test_point_0(UNUSED_PIN_0);
@@ -259,9 +260,23 @@ float get_pack_current()
     printf("ADC pack current: ");
     printFloat(i);
     printf("\r\n");
+    printf("ADC pack current offset: ");
+    printFloat(i-zero_current_ADC);
+    printf("\r\n");
 #endif //PRINTING
 
-    i = (i*2.5/0.65-2.5)*1000/1.5;
+    // i = (i*2.5/0.65-2.5)*1000/1.5;
+    // i = (i*1.65/0.5-1.65)*100/1.65;
+    // i = (i-0.65f)*VDD*100/1.65f;
+    // i = (i-0.52f)*VDD*100/1.65f;
+    // i = (i-zero_current_ADC)*VDD*100/1.65f;
+    // i = (i*2.5/zero_current_ADC-2.5)*1000/1.5;
+    // i = (i*1.65/zero_current_ADC-1.65)*100/1.65;
+    // i = (i*2.5/zero_current_ADC-2.5)*300/0.625;
+    // i = (i*1.65/zero_current_ADC-1.65)*300/0.625/11;
+    
+    // i = (i-zero_current_ADC)*1.93/0.009;
+    i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*3.3f;
     
 #ifdef PRINTING
     printf("Pack Current: ");
@@ -313,6 +328,22 @@ void canInit()
     intCanStby = 0;
 }
 
+void currentSensorInit()
+{
+    float i = 0;
+    for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
+        i += pack_current.read();
+    i /= NUM_ADC_SAMPLES;
+
+    zero_current_ADC = i;
+
+#ifdef PRINTING
+    printf("Calibrated Current sensor to ADC value of: ");
+    printFloat(zero_current_ADC);
+    printf("\r\n");
+#endif //PRINTING
+}
+
 int main() {
     // This is only necessary if using software reset (not NRST pin)
     HAL_DBGMCU_EnableDBGSleepMode();
@@ -325,6 +356,8 @@ int main() {
 #endif //PRINTING
 
     canInit();
+    thread_sleep_for(2000);
+    currentSensorInit();
 
     while(1){
 #ifdef PRINTING
