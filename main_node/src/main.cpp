@@ -46,7 +46,7 @@ bool test_pack_voltage(float test_min, float test_max){
     float v = pack_volt.read();
 #ifdef PRINTING
     printf("ADC pack voltage: ");
-    printFloat(v);
+    printFloat(v, 2);
     printf("\r\n");
 #endif //PRINTING
     if(v>=test_min && v<=test_max){
@@ -68,7 +68,7 @@ bool test_pack_current(float test_min, float test_max){
     float i = pack_current.read();
 #ifdef PRINTING
     printf("ADC pack current: ");
-    printFloat(i);
+    printFloat(i, 2);
     printf("\r\n");
 #endif //PRINTING
     if(i>=test_min && i<=test_max){
@@ -232,7 +232,7 @@ float get_pack_voltage(){
 
 #ifdef PRINTING
     printf("ADC pack voltage: ");
-    printFloat(v);
+    printFloat(v, 5);
     printf("\r\n");
 #endif //PRINTING
 
@@ -240,7 +240,7 @@ float get_pack_voltage(){
 
 #ifdef PRINTING
     printf("Pack Voltage: ");
-    printFloat(v);
+    printFloat(v, 2);
     printf(" V\r\n");
 #endif //PRINTING
     return v;
@@ -258,10 +258,10 @@ float get_pack_current()
     
 #ifdef PRINTING
     printf("ADC pack current: ");
-    printFloat(i);
+    printFloat(i, 5);
     printf("\r\n");
     printf("ADC pack current offset: ");
-    printFloat(i-zero_current_ADC);
+    printFloat(i-zero_current_ADC, 5);
     printf("\r\n");
 #endif //PRINTING
 
@@ -280,7 +280,7 @@ float get_pack_current()
     
 #ifdef PRINTING
     printf("Pack Current: ");
-    printFloat(i);
+    printFloat(i, 2);
     printf(" A\r\n");
 #endif //PRINTING
 
@@ -339,7 +339,7 @@ void currentSensorInit()
 
 #ifdef PRINTING
     printf("Calibrated Current sensor to ADC value of: ");
-    printFloat(zero_current_ADC);
+    printFloat(zero_current_ADC, 5);
     printf("\r\n");
 #endif //PRINTING
 }

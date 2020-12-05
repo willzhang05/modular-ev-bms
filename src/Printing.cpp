@@ -1,44 +1,43 @@
 #include "Printing.h"
 #include <mbed.h>
 
-// Input: an integer representing a float with 2 digits past decimal multiplied by 100
+// Input: an integer representing a float with decimals digits past decimal multiplied by 10^decimals
 // Output: print num as a float
-void printIntegerAsFloat(int num) {
+void printIntegerAsFloat(int num, int decimals) {
     int left = num;
     int right = num;
-    left /= 100;
-    right -= left * 100;
-    right = abs(right);
-    if(right < 10) {
-        printf("%d.%d%d", left, 0, right);
+    int d = decimals;
+
+    if(left < 0)
+        printf("-");
+    
+    int mult = 1;
+    for(int i = 0; i < d; ++i)
+        mult *= 10;
+    
+    left = abs(left/mult);
+    right = abs(right) - left * mult;
+
+    printf("%d.", left);
+
+    for(int i = 10; i < mult; i*=10)
+    {
+        if(right < i)
+            printf("0");
     }
-    else {
-        printf("%d.%d", left, right);
-    }
+
+    printf("%d", right);
 }
 
 // Input: a float
 // Output: print num as a float
-void printFloat(float num) {
-    int left = abs((int)(num));
-    int right = abs((int)(num * 10000));
-    right -= left * 10000;
-    string toPrint = "";
-    if(num < 0)
-        toPrint += "-";
-    toPrint += "%d.";
-    if(right < 10) {
-        toPrint += "0";
-        // printf("%d.000%d", left, right);
-    }
-    if(right<100) {
-        toPrint += "0";
-        // printf("%d.00%d", left, right);
-    }
-    if(right<1000) {
-        toPrint += "0";
-        // printf("%d.0%d", left, right);
-    }
-    toPrint += "%d";
-    printf(toPrint.c_str(), left, right);
+void printFloat(float num, int decimals) {
+    float n = num;
+    int d = decimals;
+
+    int mult = 1;
+    for(int i = 0; i < d; ++i)
+        mult *= 10;
+    
+    printIntegerAsFloat((int)(n*mult), d);
 }
