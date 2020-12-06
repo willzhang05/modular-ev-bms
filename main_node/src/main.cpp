@@ -401,6 +401,9 @@ void parseCANMessage(const CANMessage& msg)
         cell_voltages[messageNodeID] = cellData->CellVolt;
         cell_temperatures[messageNodeID] = cellData->CellTemp;
         PRINT("Received data for Cell %d\r\n", messageNodeID);
+        PRINT("Cell %d Voltage: ", messageNodeID);
+        printIntegerAsFloat(cellData->CellVolt, 4);
+        PRINT("\r\nCell %d Temperature: %d\r\n", messageNodeID, cellData->CellTemp);
     }
 }
 
