@@ -5,10 +5,11 @@
 
 // #define TESTING     // only defined if using test functions
 
-#define NUM_ADC_SAMPLES 10
-#define NUM_CELL_NODES  2   // also the number of cells in series
-#define NUM_PARALLEL_CELL 3
+#define NUM_ADC_SAMPLES     10
+#define NUM_CELL_NODES      2   // also the number of cells in series
+#define NUM_PARALLEL_CELL   2
 // #define VDD 3.3f
+#define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
 
@@ -37,30 +38,33 @@ float SOC[NUM_CELL_NODES];
 float SOH[NUM_CELL_NODES];
 float DOD[NUM_CELL_NODES];
 
-float min_current_thresh = 0.001; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
-float min_current_charging_thresh = 0.1;
-float min_voltage_diff = 0.001;
+float min_current_thresh = 0.001f; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
+float min_current_charging_thresh = 0.1f;
+float min_voltage_diff = 0.001f;
 float last_voltage[NUM_CELL_NODES];
 
 int constant_voltage_count = 0;
 int constant_voltage_count_thresh = 5;
 
 float rated_capacity = 12060*NUM_PARALLEL_CELL; //3350 mAh in Coulombs
-float dt = 0.1; //seconds
+float dt = 1.0f/MAIN_LOOP_PERIOD_MS; //seconds
 
-float max_voltage = 4.2;
-float min_voltage = 2.5;
-
-float VDD = 3.3;
+float max_voltage = 4.2f;
+float min_voltage = 2.5f;
 
 int callibrate_length = 7;
-float voltage_callibrate [7] = {0, 2.5, 2.8, 3.3, 3.6, 4.2, 10};
+float voltage_callibrate [7] = {0, 2.5f, 2.8f, 3.3f, 3.6f, 4.2f, 10.0f};
 float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
 
 uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
-uint16_t cell_balancing_thresh = 3000;      // units of 0.0001 V
+uint16_t cell_balancing_thresh = 3000;      // units of 0.0001 V, the turn-on voltage difference for balancing
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
-int8_t temperature_thresh = 30;             // units of 1 deg C
+int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on temperature for fans
+
+uint16_t packVoltage;                                   // units of 0.01 V
+int16_t packCurrent;                                    // units of 0.01 A, positive means discharging, negative means charging
+int16_t maxDischargeCurrent = 500*NUM_PARALLEL_CELL;    // units of 0.01 A
+int16_t maxChargeCurrent = -148*NUM_PARALLEL_CELL;      // units of 0.01 A
 
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
@@ -169,6 +173,7 @@ void test_sleep()
 
 }
 #endif //TESTING
+
 void init_cell_SOC(int index)
 {
     charge_estimation_state[index] = 0;
@@ -177,6 +182,7 @@ void init_cell_SOC(int index)
     DOD[index] = 0.0;
     last_voltage[index] = 0.0;
 }
+
 void SOC_estimation_update(float current, float voltage, int index) //TODO: Check does positive current mean charging or discharging
 {
     if(charge_estimation_state[index]==0){ //Initial State
@@ -282,6 +288,15 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
     }
     last_voltage[index] = voltage;
 }
+
+void contactors_logic()
+{
+    if(packCurrent > maxDischargeCurrent)
+        discharge_contactor = 0;
+    if(packCurrent < maxChargeCurrent)
+        charge_contactor = 0;
+}
+
 void cell_balancing_logic(){ //Cell balancing based on voltage
     uint16_t min_cell_voltage = cell_voltages[0];
     for(int i = 0; i < NUM_CELL_NODES; ++i)
@@ -294,9 +309,25 @@ void cell_balancing_logic(){ //Cell balancing based on voltage
     {
         if(cell_voltages[i] > (min_cell_voltage+cell_balancing_thresh)){
             //Turn cell balancing on
+            if(i < MAX_CAN_DATA_SIZE/2)
+                balancing0to63.ID_31_downto_0 |= 1 << i;
+            else if(i < MAX_CAN_DATA_SIZE)
+                balancing0to63.ID_63_downto_32 |= 1 << i;
+            else if(i < MAX_CAN_DATA_SIZE*3/4)
+                balancing64to127.ID_31_downto_0 |= 1 << (i-MAX_CAN_DATA_SIZE);
+            else
+                balancing64to127.ID_63_downto_32 |= 1 << (i-MAX_CAN_DATA_SIZE);
         }
         else{
             //turn cell balancing off
+            if(i < MAX_CAN_DATA_SIZE/2)
+                balancing0to63.ID_31_downto_0 &= ~(1 << i);
+            else if(i < MAX_CAN_DATA_SIZE)
+                balancing0to63.ID_63_downto_32 &= ~(1 << i);
+            else if(i < MAX_CAN_DATA_SIZE*3/4)
+                balancing64to127.ID_31_downto_0 &= ~(1 << (i-MAX_CAN_DATA_SIZE));
+            else
+                balancing64to127.ID_63_downto_32 &= ~(1 << (i-MAX_CAN_DATA_SIZE));
         }
     }
 }
@@ -316,7 +347,7 @@ void fan_logic(){
     if(fanOn)
     {
         fan_ctrl.write(1);
-        float fan_power = (max_cell_temp-max_cell_temp)/20.0f; 
+        float fan_power = (max_cell_temp-temperature_thresh)/20.0f; 
         if(fan_power > 1.0){
             fan_power = 1.0;
         }
@@ -459,8 +490,15 @@ int main() {
     PRINT("start main() \n\r");
 
     canInit();
+    for(int i = 0; i < NUM_CELL_NODES; ++i)
+    {
+        init_cell_SOC(i);
+    }
     thread_sleep_for(2000);
     currentSensorInit();
+
+    discharge_contactor = 1;
+    charge_contactor = 1;
 
     while(1){
         PRINT("main thread loop\r\n");
@@ -470,9 +508,19 @@ int main() {
         test_pack_current(0, 1);
         // test_fan_output();
 #endif //TESTING
-        get_pack_voltage();
-        get_pack_current();
-        thread_sleep_for(1000);
+        packVoltage = (uint16_t)(get_pack_voltage()*100);
+        packCurrent = (int16_t)(get_pack_current()*100);
+
+        contactors_logic();
+        fan_logic();
+        cell_balancing_logic();
+        
+        for(int i = 0; i < NUM_CELL_NODES; ++i)
+        {
+            SOC_estimation_update(packCurrent, cell_voltages[i], i);
+        }
+
+        thread_sleep_for(MAIN_LOOP_PERIOD_MS);
         PRINT("\r\n");
     }
 }
