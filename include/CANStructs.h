@@ -11,6 +11,8 @@
 #define GET_NODE_ID(CAN_MESSAGE_ID)             (CAN_MESSAGE_ID&0x7F)
 #define GET_PRIORITY(CAN_MESSAGE_ID)            ((CAN_MESSAGE_ID>>7)&0x0F)
 
+#define MAX_CAN_DATA_SIZE   64
+
 //********** INTERNAL CAN MESSAGES **********
 
 // Main Node -> Cell Node message
