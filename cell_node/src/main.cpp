@@ -221,7 +221,6 @@ int main() {
     PRINT("start of main()\r\n");
 
     while(1) {
-        // do nothing
         led2 = led2 ^ 1;
 
         PRINT("Hello!\r\n");
@@ -231,6 +230,7 @@ int main() {
 #endif //TESTING
         cellData.CellVolt = get_cell_voltage();
         cellData.CellTemp = get_cell_temperature();
+        *balance_out = balancing;
         thread_sleep_for(1000);
 
         PRINT("\r\n");
