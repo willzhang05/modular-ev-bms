@@ -1,11 +1,12 @@
 #include <mbed.h>
 #include "pindef.h"
 #include "Printing.h"
+#include "CANStructs.h"
 
 // #define TESTING     // only defined if using test functions
 
 #define NUM_ADC_SAMPLES 10
-#define NUM_CELL_NODES  2
+#define NUM_CELL_NODES  2   // also the number of cells in series
 #define NUM_PARALLEL_CELL 3
 // #define VDD 3.3f
 
@@ -27,6 +28,10 @@ DigitalOut intCanStby(INT_CAN_STBY);
 DigitalOut extCanStby(EXT_CAN_STBY);
 
 Ticker intCanTxTicker;
+
+Balancing balancing0to63;
+Balancing balancing64to127;
+
 int charge_estimation_state[NUM_CELL_NODES]; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 float SOC[NUM_CELL_NODES];
 float SOH[NUM_CELL_NODES];
@@ -52,10 +57,11 @@ int callibrate_length = 7;
 float voltage_callibrate [7] = {0, 2.5, 2.8, 3.3, 3.6, 4.2, 10};
 float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
 
-float cell_voltages[NUM_CELL_NODES];
-float cell_balancing_thresh = 0.3f;
-float cell_temperatures [NUM_CELL_NODES];
-float temperature_thresh = 30.0f;
+uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
+uint16_t cell_balancing_thresh = 3000;      // units of 0.0001 V
+int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
+int8_t temperature_thresh = 30;             // units of 1 deg C
+
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
 #ifdef TESTING
@@ -277,7 +283,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
     last_voltage[index] = voltage;
 }
 void cell_balancing_logic(){ //Cell balancing based on voltage
-    float min_cell_voltage = cell_voltages[0];
+    uint16_t min_cell_voltage = cell_voltages[0];
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         if(cell_voltages[i] < min_cell_voltage){
@@ -297,7 +303,7 @@ void cell_balancing_logic(){ //Cell balancing based on voltage
 
 void fan_logic(){
     bool fanOn = false;
-    float max_cell_temp = cell_temperatures[0];
+    int8_t max_cell_temp = cell_temperatures[0];
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         if(cell_temperatures[i] > temperature_thresh){
@@ -310,7 +316,7 @@ void fan_logic(){
     if(fanOn)
     {
         fan_ctrl.write(1);
-        float fan_power = (max_cell_temp-max_cell_temp)/20; 
+        float fan_power = (max_cell_temp-max_cell_temp)/20.0f; 
         if(fan_power > 1.0){
             fan_power = 1.0;
         }
@@ -385,40 +391,44 @@ float get_pack_current()
     return i;
 }
 
-// WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
-// This method is Thread safe (CAN is Thread safe)
-bool sendCANMessage(const char *data, const unsigned char len = 8)
+void parseCANMessage(const CANMessage& msg)
 {
-    if (len > 8 || !intCan.write(CANMessage(2, data, len)))
-        return false;
-
-    return true;
-}
-
-// WARNING: This method will be called in an ISR context
-void canTxIrqHandler()
-{
-    string toSend = "MainSend";
-    if (sendCANMessage(toSend.c_str(), toSend.length()))
+    uint8_t messagePriority = GET_PRIORITY(msg.id);
+    uint8_t messageNodeID = GET_NODE_ID(msg.id);
+    if(messagePriority == 2)
     {
-        PRINT("Message sent: %s\r\n", toSend.c_str()); // This should be removed except for testing CAN
+        CellData* cellData = (CellData*)msg.data;
+        cell_voltages[messageNodeID] = cellData->CellVolt;
+        cell_temperatures[messageNodeID] = cellData->CellTemp;
+        PRINT("Received data for Cell %d\r\n", messageNodeID);
     }
 }
 
 // WARNING: This method will be called in an ISR context
-void canRxIrqHandler()
+void intCanTxIrqHandler()
+{
+    if (intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,0), (char*)&balancing0to63, sizeof(balancing0to63))) &&
+        intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,1), (char*)&balancing64to127, sizeof(balancing64to127))))
+    {
+        PRINT("Message sent!\r\n");
+    }
+}
+
+// WARNING: This method will be called in an ISR context
+void intCanRxIrqHandler()
 {
     CANMessage receivedCANMessage;
     while (intCan.read(receivedCANMessage))
     {
-        PRINT("Message received: %s\r\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
+        PRINT("Message received!\r\n");
+        parseCANMessage(receivedCANMessage);
     }
 }
 
 void canInit()
 {
-    intCanTxTicker.attach(&canTxIrqHandler, 1s);
-    intCan.attach(&canRxIrqHandler, CAN::RxIrq);
+    intCanTxTicker.attach(&intCanTxIrqHandler, 1s);
+    intCan.attach(&intCanRxIrqHandler, CAN::RxIrq);
     intCanStby = 0;
 }
 
