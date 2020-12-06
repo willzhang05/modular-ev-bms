@@ -7,25 +7,20 @@
 
 // This uses a lot of ROM!!!
 // BufferedSerial device(USBTX, USBRX, 38400);
-
-DigitalOut* balance_out;
-
 // int temperature_length = 8;
 // float t_voltage_output [8] = {1.299, 1.034, 0.925, 0.871, 0.816, 0.760, 0.476, 0.183};
 // float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
-
-
 // DigitalOut* led2;
 
 CAN* can1;
-
 Ticker canTxTicker;
-
 
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
-
 CellData cellData;  // stores cell volt and cell temp
+
+DigitalOut* balance_out;
+bool balancing;
 
 // multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
 #define CELL_VOLT_MULT  (6.75f)     // experimental value
@@ -108,7 +103,7 @@ void test_sleep()
 #endif //TESTING
 
 //********** CAN **********
-#define DEVICE_ID           2   // hard-coded ID for each cell node
+#define NODE_ID             2   // hard-coded ID for each cell node
 #define CELL_DATA_PRIORITY  2
 
 // WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
@@ -123,8 +118,29 @@ bool sendCANMessage(int messageID, const char *data, const unsigned char len = 8
 // WARNING: This method will be called in an ISR context
 void canTxIrqHandler() {
     CellData toSend = cellData;
-    if (sendCANMessage(GET_CAN_MESSAGE_ID(DEVICE_ID, CELL_DATA_PRIORITY), (char*)&toSend, sizeof(toSend))) {
-        PRINT("Message sent!\n");
+    if (sendCANMessage(GET_CAN_MESSAGE_ID(NODE_ID, CELL_DATA_PRIORITY), (char*)&toSend, sizeof(toSend))) {
+        PRINT("Message sent!\r\n");
+    }
+}
+
+void parseCANMessage(const CANMessage &msg) {
+    uint32_t messageID = msg.id;
+    uint8_t srcNodeID = GET_NODE_ID(messageID);
+    uint8_t priority = GET_PRIORITY(messageID);
+    
+    if(srcNodeID != 0) { // ignore all messages except from main node
+        return;
+    }
+
+    if((NODE_ID < MAX_CAN_DATA_SIZE && priority == 0) || (NODE_ID >= MAX_CAN_DATA_SIZE && priority == 1)) {
+        int index = NODE_ID - priority * MAX_CAN_DATA_SIZE;
+        Balancing* balancingCells = (Balancing*)msg.data;
+        if(index < MAX_CAN_DATA_SIZE/2) {
+            balancing = (balancingCells->ID_31_downto_0) & (1<<index);
+        }
+        else {
+            balancing = (balancingCells->ID_63_downto_32) & (1<<(index-MAX_CAN_DATA_SIZE/2));
+        }
     }
 }
 
@@ -132,8 +148,8 @@ void canTxIrqHandler() {
 void canRxIrqHandler() {
     CANMessage receivedCANMessage;
     while (can1->read(receivedCANMessage)) {
-        uint32_t messageID = receivedCANMessage.id;
-        PRINT("Message received: %s\n", receivedCANMessage.data);
+        parseCANMessage(receivedCANMessage);
+        PRINT("Message received!\r\n");
     }
 }
 
@@ -208,7 +224,7 @@ int main() {
         // do nothing
         led2 = led2 ^ 1;
 
-        PRINT("Hello! \r\n");
+        PRINT("Hello!\r\n");
 
 #ifdef TESTING
         test_cell_voltage(0,1);
