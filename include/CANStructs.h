@@ -8,6 +8,8 @@
 // CAN message ID (11 bits): Device ID stored in bottom 7 bits (bits 0-6),
 //                           Priority stored in next 4 bits (bits 7-10)
 #define GET_CAN_MESSAGE_ID(DEVICE_ID, PRIORITY) ((DEVICE_ID&0x7F)|((PRIORITY&0x0F)<<7))
+#define GET_DEVICE_ID(CAN_MESSAGE_ID)           (CAN_MESSAGE_ID&0x7F)
+#define GET_PRIORITY(CAN_MESSAGE_ID)            ((CAN_MESSAGE_ID>>7)&0x0F)
 
 //********** INTERNAL CAN MESSAGES **********
 
