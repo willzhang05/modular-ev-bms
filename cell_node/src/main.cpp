@@ -10,9 +10,9 @@
 
 DigitalOut* balance_out;
 
-int temperature_length = 8;
-float t_voltage_output [8] = {1.299, 1.034, 0.925, 0.871, 0.816, 0.760, 0.476, 0.183};
-float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
+// int temperature_length = 8;
+// float t_voltage_output [8] = {1.299, 1.034, 0.925, 0.871, 0.816, 0.760, 0.476, 0.183};
+// float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
 
 
 // DigitalOut* led2;
@@ -25,8 +25,7 @@ Ticker canTxTicker;
 AnalogIn cell_volt(CELL_VOLTAGE);
 AnalogIn cell_temp(TEMPERATURE_DATA);
 
-uint16_t current_cell_volt; // 0V to 5V, units of 0.0001V
-int8_t current_cell_temp;  // -40degC to +80degC, units of 1degC
+CellData cellData;  // stores cell volt and cell temp
 
 // multiplier from AnalogIn reading [0, 1] to Cell Voltage (V) [0, 5]
 #define CELL_VOLT_MULT  (6.75f)     // experimental value
@@ -123,9 +122,7 @@ bool sendCANMessage(int messageID, const char *data, const unsigned char len = 8
 
 // WARNING: This method will be called in an ISR context
 void canTxIrqHandler() {
-    CellData toSend;
-    toSend.CellVolt = current_cell_volt;
-    toSend.CellTemp = current_cell_temp;
+    CellData toSend = cellData;
     if (sendCANMessage(GET_CAN_MESSAGE_ID(DEVICE_ID, CELL_DATA_PRIORITY), (char*)&toSend, sizeof(toSend))) {
         PRINT("Message sent!\n");
     }
@@ -216,8 +213,8 @@ int main() {
 #ifdef TESTING
         test_cell_voltage(0,1);
 #endif //TESTING
-        current_cell_volt = get_cell_voltage();
-        current_cell_temp = get_cell_temperature();
+        cellData.CellVolt = get_cell_voltage();
+        cellData.CellTemp = get_cell_temperature();
         thread_sleep_for(1000);
 
         PRINT("\r\n");
