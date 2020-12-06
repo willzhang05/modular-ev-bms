@@ -117,8 +117,7 @@ bool sendCANMessage(int messageID, const char *data, const unsigned char len = 8
 
 // WARNING: This method will be called in an ISR context
 void canTxIrqHandler() {
-    CellData toSend = cellData;
-    if (sendCANMessage(GET_CAN_MESSAGE_ID(NODE_ID, CELL_DATA_PRIORITY), (char*)&toSend, sizeof(toSend))) {
+    if (sendCANMessage(GET_CAN_MESSAGE_ID(NODE_ID, CELL_DATA_PRIORITY), (char*)&cellData, sizeof(cellData))) {
         PRINT("Message sent!\r\n");
     }
 }
@@ -154,9 +153,6 @@ void canRxIrqHandler() {
 }
 
 void canInit() {
-    CAN theRealCan1(CAN_RX, CAN_TX);
-    can1 = &theRealCan1;
-
     canTxTicker.attach(&canTxIrqHandler, 1s); // float, in seconds
     can1->attach(&canRxIrqHandler, CAN::RxIrq);
 }
@@ -211,6 +207,9 @@ int main() {
 #ifdef STM32F042x6
     __HAL_REMAP_PIN_ENABLE(HAL_REMAP_PA11_PA12);
 #endif //STM32F042x6
+
+    CAN theRealCan1(CAN_RX, CAN_TX);
+    can1 = &theRealCan1;
     canInit();
 
     DigitalOut theRealBalanceOut(BALANCING_CONTROL);
@@ -232,7 +231,6 @@ int main() {
         cellData.CellTemp = get_cell_temperature();
         *balance_out = balancing;
         thread_sleep_for(1000);
-
         PRINT("\r\n");
     }
 }
