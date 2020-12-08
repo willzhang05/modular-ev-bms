@@ -58,7 +58,7 @@ float voltage_callibrate [7] = {0, 2.5f, 2.8f, 3.3f, 3.6f, 4.2f, 10.0f};
 float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
 
 uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
-uint16_t cell_balancing_thresh = 3000;      // units of 0.0001 V, the turn-on voltage difference for balancing
+uint16_t cell_balancing_thresh = 100;      // units of 0.0001 V, the turn-on voltage difference for balancing
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
 int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on temperature for fans
 
@@ -520,11 +520,10 @@ int main() {
     {
         init_cell_SOC(i);
     }
-    thread_sleep_for(2000);
-    currentSensorInit();
-
     discharge_contactor = 1;
     charge_contactor = 1;
+    thread_sleep_for(2000);
+    currentSensorInit();
     
     int mainLoopCount = 0;
 
@@ -579,6 +578,7 @@ int main() {
                 PRINT("Cell Node %d: ", i+1);
                 printIntegerAsFloat(cell_voltages[i], 4);
                 PRINT(" V\t");
+                // PRINT("State: %d\r\n", charge_estimation_state[i]);
             }
             PRINT("\r\n");
             PRINT("\r\n");
