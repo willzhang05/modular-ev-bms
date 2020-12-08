@@ -8,7 +8,7 @@
 #define NUM_ADC_SAMPLES     10
 #define NUM_CELL_NODES      2   // also the number of cells in series
 #define NUM_PARALLEL_CELL   2
-// #define VDD 3.3f
+#define VDD 3.3f
 #define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
@@ -63,8 +63,8 @@ int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on tem
 
 uint16_t packVoltage;                                   // units of 0.01 V
 int16_t packCurrent;                                    // units of 0.01 A, positive means discharging, negative means charging
-int16_t maxDischargeCurrent = 500*NUM_PARALLEL_CELL;    // units of 0.01 A
-int16_t maxChargeCurrent = -148*NUM_PARALLEL_CELL;      // units of 0.01 A
+int16_t maxDischargeCurrent = 500;    // units of 0.01 A
+int16_t maxChargeCurrent = -148;      // units of 0.01 A
 
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
@@ -376,7 +376,10 @@ float get_pack_voltage(){
     printFloat(v, 5);
     PRINT("\r\n");
 
-    v = v*12/0.09;
+    // v = v*12/0.09;
+    // v = v*VDD*10/15*2222/22;
+    // v = v*8.4f/0.0268f;
+    v = v*12/0.05f;
 
     PRINT("Pack Voltage: ");
     printFloat(v, 2);
@@ -413,7 +416,7 @@ float get_pack_current()
     // i = (i*1.65/zero_current_ADC-1.65)*300/0.625/11;
     
     // i = (i-zero_current_ADC)*1.93/0.009;
-    i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*3.3f;
+    i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*VDD;
     
     PRINT("Pack Current: ");
     printFloat(i, 2);
