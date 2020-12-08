@@ -8,7 +8,7 @@
 #define NUM_ADC_SAMPLES     10
 #define NUM_CELL_NODES      2   // also the number of cells in series
 #define NUM_PARALLEL_CELL   2
-#define VDD 3.3f
+#define VDD                 3.3f
 #define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
@@ -32,6 +32,7 @@ Ticker intCanTxTicker;
 
 Balancing balancing0to63;
 Balancing balancing64to127;
+PackStatus packStatus;
 
 int charge_estimation_state[NUM_CELL_NODES]; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 float SOC[NUM_CELL_NODES];
@@ -61,10 +62,8 @@ uint16_t cell_balancing_thresh = 3000;      // units of 0.0001 V, the turn-on vo
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
 int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on temperature for fans
 
-uint16_t packVoltage;                                   // units of 0.01 V
-int16_t packCurrent;                                    // units of 0.01 A, positive means discharging, negative means charging
-int16_t maxDischargeCurrent = 500;    // units of 0.01 A
-int16_t maxChargeCurrent = -148;      // units of 0.01 A
+int16_t maxDischargeCurrent = 500*NUM_PARALLEL_CELL;    // units of 0.01 A
+int16_t maxChargeCurrent = -200*NUM_PARALLEL_CELL;      // units of 0.01 A
 
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
@@ -291,9 +290,9 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
 
 void contactors_logic()
 {
-    if(packCurrent > maxDischargeCurrent)
+    if(packStatus.PackCurrent > maxDischargeCurrent)
         discharge_contactor = 0;
-    if(packCurrent < maxChargeCurrent)
+    if(packStatus.PackCurrent < maxChargeCurrent)
         charge_contactor = 0;
 }
 
@@ -335,6 +334,7 @@ void cell_balancing_logic(){ //Cell balancing based on voltage
 void fan_logic(){
     bool fanOn = false;
     int8_t max_cell_temp = cell_temperatures[0];
+    int16_t sum_cell_temp = 0;
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         if(cell_temperatures[i] > temperature_thresh){
@@ -343,7 +343,12 @@ void fan_logic(){
         if(cell_temperatures[i] > max_cell_temp){
             max_cell_temp = cell_temperatures[i];
         }
+        sum_cell_temp += cell_temperatures[i];
     }
+
+    packStatus.PackMaxTemp = max_cell_temp;
+    packStatus.PackAvgTemp = (int8_t)(sum_cell_temp/NUM_CELL_NODES);
+
     if(fanOn)
     {
         fan_ctrl.write(1);
@@ -372,18 +377,22 @@ float get_pack_voltage(){
         v += pack_volt.read();
     v /= NUM_ADC_SAMPLES;
 
+#ifdef TESTING
     PRINT("ADC pack voltage: ");
     printFloat(v, 5);
     PRINT("\r\n");
+#endif //TESTING
 
     // v = v*12/0.09;
     // v = v*VDD*10/15*2222/22;
     // v = v*8.4f/0.0268f;
     v = v*12/0.05f;
 
+#ifdef TESTING
     PRINT("Pack Voltage: ");
     printFloat(v, 2);
     PRINT(" V\r\n");
+#endif //TESTING
     
     return v;
 }
@@ -398,12 +407,14 @@ float get_pack_current()
         i += pack_current.read();
     i /= NUM_ADC_SAMPLES;
     
+#ifdef TESTING
     PRINT("ADC pack current: ");
     printFloat(i, 5);
     PRINT("\r\n");
     PRINT("ADC pack current offset: ");
     printFloat(i-zero_current_ADC, 5);
     PRINT("\r\n");
+#endif //TESTING
 
     // i = (i*2.5/0.65-2.5)*1000/1.5;
     // i = (i*1.65/0.5-1.65)*100/1.65;
@@ -418,9 +429,11 @@ float get_pack_current()
     // i = (i-zero_current_ADC)*1.93/0.009;
     i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*VDD;
     
+#ifdef TESTING
     PRINT("Pack Current: ");
     printFloat(i, 2);
     PRINT(" A\r\n");
+#endif //TESTING
 
     return i;
 }
@@ -432,12 +445,14 @@ void parseCANMessage(const CANMessage& msg)
     if(messagePriority == 2)
     {
         CellData* cellData = (CellData*)msg.data;
-        cell_voltages[messageNodeID] = cellData->CellVolt;
-        cell_temperatures[messageNodeID] = cellData->CellTemp;
+        cell_voltages[messageNodeID-1] = cellData->CellVolt;
+        cell_temperatures[messageNodeID-1] = cellData->CellTemp;
+#ifdef TESTING
         PRINT("Received data for Cell %d\r\n", messageNodeID);
         PRINT("Cell %d Voltage: ", messageNodeID);
         printIntegerAsFloat(cellData->CellVolt, 4);
         PRINT("\r\nCell %d Temperature: %d\r\n", messageNodeID, cellData->CellTemp);
+#endif //TESTING
     }
 }
 
@@ -447,7 +462,9 @@ void intCanTxIrqHandler()
     if (intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,0), (char*)&balancing0to63, sizeof(balancing0to63))) &&
         intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,1), (char*)&balancing64to127, sizeof(balancing64to127))))
     {
+#ifdef TESTING
         PRINT("Message sent!\r\n");
+#endif //TESTING
     }
 }
 
@@ -457,7 +474,9 @@ void intCanRxIrqHandler()
     CANMessage receivedCANMessage;
     while (intCan.read(receivedCANMessage))
     {
+#ifdef TESTING
         PRINT("Message received!\r\n");
+#endif //TESTING
         parseCANMessage(receivedCANMessage);
     }
 }
@@ -478,9 +497,11 @@ void currentSensorInit()
 
     zero_current_ADC = i;
 
+#ifdef TESTING
     PRINT("Calibrated Current sensor to ADC value of: ");
     printFloat(zero_current_ADC, 5);
     PRINT("\r\n");
+#endif //TESTING
 }
 
 int main() {
@@ -490,7 +511,9 @@ int main() {
     HAL_DBGMCU_EnableDBGStopMode();
 
     // device.set_baud(38400);
+#ifdef TESTING
     PRINT("start main() \n\r");
+#endif //TESTING
 
     canInit();
     for(int i = 0; i < NUM_CELL_NODES; ++i)
@@ -502,28 +525,73 @@ int main() {
 
     discharge_contactor = 1;
     charge_contactor = 1;
+    
+    int mainLoopCount = 0;
 
     while(1){
-        PRINT("main thread loop\r\n");
 #ifdef TESTING
+        if(mainLoopCount == 0)
+            PRINT("main thread loop\r\n");
         test_point_0 = test_point_0 ^ 1;
         test_pack_voltage(0, 1);
         test_pack_current(0, 1);
         // test_fan_output();
 #endif //TESTING
-        packVoltage = (uint16_t)(get_pack_voltage()*100);
-        packCurrent = (int16_t)(get_pack_current()*100);
+        packStatus.PackVolt = (uint16_t)(get_pack_voltage()*100);
+        packStatus.PackCurrent = (int16_t)(get_pack_current()*100);
 
         contactors_logic();
         fan_logic();
         cell_balancing_logic();
         
+        float sumSOC = 0, sumSOH = 0;
         for(int i = 0; i < NUM_CELL_NODES; ++i)
         {
-            SOC_estimation_update(packCurrent, cell_voltages[i], i);
+            SOC_estimation_update(packStatus.PackCurrent, cell_voltages[i], i);
+            sumSOC += SOC[i];
+            sumSOH += SOH[i];
+        }
+        packStatus.SOC = (uint8_t)round(sumSOC/NUM_CELL_NODES*2);
+        packStatus.SOH = (uint8_t)round(sumSOH/NUM_CELL_NODES*2);
+
+        if(mainLoopCount == 0)
+        {
+            // print all BMS info for the user (what would be in the PC program)
+            // Pack Data
+            PRINT("Pack SOC: ");
+            printIntegerAsFloat(((uint16_t)packStatus.SOC)*5, 1);
+            PRINT("%%\t\t");
+            PRINT("Pack SOH: ");
+            printIntegerAsFloat(((uint16_t)packStatus.SOH)*5, 1);
+            PRINT("%%\r\n");
+            PRINT("Pack Voltage: ");
+            printIntegerAsFloat(packStatus.PackVolt, 2);
+            PRINT(" V\t\t");
+            PRINT("Pack Current: ");
+            printIntegerAsFloat(packStatus.PackCurrent, 2);
+            PRINT(" A\r\n");
+            PRINT("Pack High Temp: %d deg C\t", packStatus.PackMaxTemp);
+            PRINT("Pack Avg Temp: %d deg C\r\n", packStatus.PackAvgTemp);
+            
+            // Cell Data
+            for(int i = 0; i < NUM_CELL_NODES; ++i)
+            {
+                PRINT("Cell Node %d: ", i+1);
+                printIntegerAsFloat(cell_voltages[i], 4);
+                PRINT(" V\t");
+            }
+            PRINT("\r\n");
+            PRINT("\r\n");
         }
 
         thread_sleep_for(MAIN_LOOP_PERIOD_MS);
-        PRINT("\r\n");
+        
+#ifdef TESTING
+        if(mainLoopCount == 0)
+            PRINT("\r\n");
+#endif //TESTING
+
+        if(++mainLoopCount >= 1000/MAIN_LOOP_PERIOD_MS)
+            mainLoopCount = 0;
     }
 }
