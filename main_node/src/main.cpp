@@ -39,16 +39,16 @@ float SOC[NUM_CELL_NODES];
 float SOH[NUM_CELL_NODES];
 float DOD[NUM_CELL_NODES];
 
-float min_current_thresh = 0.001f; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
+float min_current_thresh = 0.5f; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
 float min_current_charging_thresh = 0.5f;
-float min_voltage_diff = 0.3f;
+float min_voltage_diff = 0.001f;
 float last_voltage[NUM_CELL_NODES];
 
 int constant_voltage_count = 0;
-int constant_voltage_count_thresh = 5;
+int constant_voltage_count_thresh = 500;
 
-float rated_capacity = 12060*NUM_PARALLEL_CELL; //3350 mAh in Coulombs
-float dt = 1.0f/MAIN_LOOP_PERIOD_MS; //seconds
+float rated_capacity = 11800*NUM_PARALLEL_CELL; //3300 mAh in Coulombs
+float dt = MAIN_LOOP_PERIOD_MS/1000.0f; //seconds
 
 float max_voltage = 4.2f;
 float min_voltage = 2.5f;
@@ -232,7 +232,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 5;
         }
         else{ // calculate DOD and SOC
-            DOD[index] = DOD[index] + ((current*dt)/rated_capacity);
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity*100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -247,7 +247,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 6;
         }
         else{
-            DOD[index] = DOD[index] + ((current*dt)/rated_capacity);
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity*100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -527,7 +527,10 @@ int main() {
     currentSensorInit();
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
-        init_cell_SOC(i, cell_voltages[i]/10000.0f);
+        init_cell_SOC(i, cell_voltages[i]*0.0001f);
+        PRINT("Cell %d Initial SOC: ", i+1);
+        printFloat(SOC[i], 1);
+        PRINT("%%\r\n");
     }
     
     int mainLoopCount = 0;
@@ -551,7 +554,7 @@ int main() {
         float sumSOC = 0, sumSOH = 0;
         for(int i = 0; i < NUM_CELL_NODES; ++i)
         {
-            SOC_estimation_update(packStatus.PackCurrent, cell_voltages[i], i);
+            SOC_estimation_update(packStatus.PackCurrent*0.01f, cell_voltages[i]*0.0001f, i);
             sumSOC += SOC[i];
             sumSOH += SOH[i];
         }
@@ -583,7 +586,10 @@ int main() {
                 PRINT("Cell Node %d: ", i+1);
                 printIntegerAsFloat(cell_voltages[i], 4);
                 PRINT(" V\t");
-                // PRINT("State: %d\r\n", charge_estimation_state[i]);
+                PRINT("SOC: ");
+                printFloat(SOC[i], 1);
+                PRINT("%%\t");
+                PRINT("State: %d\r\n", charge_estimation_state[i]);
             }
             PRINT("\r\n");
             PRINT("\r\n");
