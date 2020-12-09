@@ -12,6 +12,8 @@
 // float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
 // DigitalOut* led2;
 
+#define MAIN_LOOP_PERIOD 10
+
 CAN* can1;
 Ticker canTxTicker;
 
@@ -153,7 +155,7 @@ void canRxIrqHandler() {
 }
 
 void canInit() {
-    canTxTicker.attach(&canTxIrqHandler, 1s); // float, in seconds
+    canTxTicker.attach(&canTxIrqHandler, CAN_PERIOD); // float, in seconds
     can1->attach(&canRxIrqHandler, CAN::RxIrq);
 }
 //********** End CAN **********
@@ -230,7 +232,7 @@ int main() {
         cellData.CellVolt = get_cell_voltage();
         cellData.CellTemp = get_cell_temperature();
         *balance_out = balancing;
-        thread_sleep_for(1000);
+        thread_sleep_for(MAIN_LOOP_PERIOD);
         PRINT("\r\n");
     }
 }
