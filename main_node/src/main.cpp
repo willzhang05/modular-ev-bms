@@ -59,9 +59,10 @@ float voltage_callibrate [9] = {0.0f, 2.5f, 2.8f, 3.0f, 3.3f, 3.6f, 4.0f, 4.2f, 
 float SOC_callibrate [9] = {0.0f, 0.0f, 7.2f, 11.6f, 34.8f, 62.3f, 100.0f, 100.0f, 100.0f};
 
 uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
-uint16_t cell_balancing_thresh = 100;      // units of 0.0001 V, the turn-on voltage difference for balancing
+uint16_t cell_balancing_thresh = 100;       // units of 0.0001 V, the turn-on voltage difference for balancing
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
-int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on temperature for fans
+int8_t temperature_thresh = 25;             // units of 1 deg C, the turn-on temperature for fans
+int8_t temperature_range = 10;              // units of 1 deg C, the temperature range for fans to reach max speed (max speed is at temp >= temperature_thresh+temperature_range)
 
 int16_t maxDischargeCurrent = 250*NUM_PARALLEL_CELL;    // units of 0.01 A
 int16_t maxChargeCurrent = -200*NUM_PARALLEL_CELL;      // units of 0.01 A
@@ -365,7 +366,7 @@ void fan_logic(){
     if(fanOn)
     {
         fan_ctrl.write(1);
-        float fan_power = (max_cell_temp-temperature_thresh)/20.0f; 
+        float fan_power = (max_cell_temp-temperature_thresh)/(float)(temperature_range); 
         if(fan_power > 1.0){
             fan_power = 1.0;
         }
