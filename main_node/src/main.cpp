@@ -54,8 +54,8 @@ float max_voltage = 4.2f;
 float min_voltage = 2.5f;
 
 int callibrate_length = 9;
-float voltage_callibrate [9] = {0, 2.5f, 2.8f, 3.0f, 3.3f, 3.6f, 4.0f, 4.2f, 10.0f};
-float SOC_callibrate [9] = {0f, 0f, 7.2f, 11.6f, 34.8f, 62.3f, 100f, 100f, 100f};
+float voltage_callibrate [9] = {0.0f, 2.5f, 2.8f, 3.0f, 3.3f, 3.6f, 4.0f, 4.2f, 10.0f};
+float SOC_callibrate [9] = {0.0f, 0.0f, 7.2f, 11.6f, 34.8f, 62.3f, 100.0f, 100.0f, 100.0f};
 
 uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
 uint16_t cell_balancing_thresh = 100;      // units of 0.0001 V, the turn-on voltage difference for balancing
@@ -521,14 +521,14 @@ int main() {
 #endif //TESTING
 
     canInit();
-    for(int i = 0; i < NUM_CELL_NODES; ++i)
-    {
-        init_cell_SOC(i, cell_voltages[i]);
-    }
     discharge_contactor = 1;
     charge_contactor = 1;
     thread_sleep_for(2000);
     currentSensorInit();
+    for(int i = 0; i < NUM_CELL_NODES; ++i)
+    {
+        init_cell_SOC(i, cell_voltages[i]/10000.0f);
+    }
     
     int mainLoopCount = 0;
 
