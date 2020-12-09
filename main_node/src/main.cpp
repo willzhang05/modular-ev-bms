@@ -4,11 +4,13 @@
 #include "CANStructs.h"
 
 // #define TESTING     // only defined if using test functions
+#define DEBUGGING   // only define if debugging
 
 #define NUM_ADC_SAMPLES     10
 #define NUM_CELL_NODES      2   // also the number of cells in series
 #define NUM_PARALLEL_CELL   2
 #define VDD                 3.3f
+#define CAN_PERIOD          10ms  // std::chrono time
 #define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
@@ -62,7 +64,7 @@ uint16_t cell_balancing_thresh = 100;      // units of 0.0001 V, the turn-on vol
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
 int8_t temperature_thresh = 30;             // units of 1 deg C, the turn-on temperature for fans
 
-int16_t maxDischargeCurrent = 500*NUM_PARALLEL_CELL;    // units of 0.01 A
+int16_t maxDischargeCurrent = 250*NUM_PARALLEL_CELL;    // units of 0.01 A
 int16_t maxChargeCurrent = -200*NUM_PARALLEL_CELL;      // units of 0.01 A
 
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
@@ -488,7 +490,7 @@ void intCanRxIrqHandler()
 
 void canInit()
 {
-    intCanTxTicker.attach(&intCanTxIrqHandler, 1s);
+    intCanTxTicker.attach(&intCanTxIrqHandler, CAN_PERIOD);
     intCan.attach(&intCanRxIrqHandler, CAN::RxIrq);
     intCanStby = 0;
 }
@@ -528,9 +530,11 @@ int main() {
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         init_cell_SOC(i, cell_voltages[i]*0.0001f);
+#ifdef DEBUGGING
         PRINT("Cell %d Initial SOC: ", i+1);
         printFloat(SOC[i], 1);
         PRINT("%%\r\n");
+#endif //DEBUGGING
     }
     
     int mainLoopCount = 0;
@@ -567,7 +571,7 @@ int main() {
             // Pack Data
             PRINT("Pack SOC: ");
             printIntegerAsFloat(((uint16_t)packStatus.SOC)*5, 1);
-            PRINT("%%\t\t");
+            PRINT("%%  \t\t");
             PRINT("Pack SOH: ");
             printIntegerAsFloat(((uint16_t)packStatus.SOH)*5, 1);
             PRINT("%%\r\n");
@@ -586,10 +590,20 @@ int main() {
                 PRINT("Cell Node %d: ", i+1);
                 printIntegerAsFloat(cell_voltages[i], 4);
                 PRINT(" V\t");
+#ifdef DEBUGGING
                 PRINT("SOC: ");
                 printFloat(SOC[i], 1);
                 PRINT("%%\t");
-                PRINT("State: %d\r\n", charge_estimation_state[i]);
+                PRINT("State: %d\t", charge_estimation_state[i]);
+#endif //DEBUGGING
+                if(i < MAX_CAN_DATA_SIZE/2)
+                    PRINT("Balancing %s\r\n", (balancing0to63.ID_31_downto_0 >> i)&1 ? "ON":"OFF");
+                else if(i < MAX_CAN_DATA_SIZE)
+                    PRINT("Balancing %s\r\n", (balancing0to63.ID_63_downto_32 >> (i-MAX_CAN_DATA_SIZE/2))&1 ? "ON":"OFF");
+                else if(i < MAX_CAN_DATA_SIZE*3/2)
+                    PRINT("Balancing %s\r\n", (balancing64to127.ID_31_downto_0 >> (i-MAX_CAN_DATA_SIZE))&1 ? "ON":"OFF");
+                else
+                    PRINT("Balancing %s\r\n", (balancing64to127.ID_63_downto_32 >> (i-MAX_CAN_DATA_SIZE*3/2))&1 ? "ON":"OFF");
             }
             PRINT("\r\n");
             PRINT("\r\n");
