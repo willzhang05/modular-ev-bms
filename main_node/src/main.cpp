@@ -4,13 +4,12 @@
 #include "CANStructs.h"
 
 // #define TESTING     // only defined if using test functions
-#define DEBUGGING   // only define if debugging
+// #define DEBUGGING   // only define if debugging
 
 #define NUM_ADC_SAMPLES     10
 #define NUM_CELL_NODES      2   // also the number of cells in series
 #define NUM_PARALLEL_CELL   2
 #define VDD                 3.3f
-#define CAN_PERIOD          10ms  // std::chrono time
 #define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
