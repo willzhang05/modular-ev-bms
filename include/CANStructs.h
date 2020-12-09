@@ -12,6 +12,7 @@
 #define GET_PRIORITY(CAN_MESSAGE_ID)            ((CAN_MESSAGE_ID>>7)&0x0F)
 
 #define MAX_CAN_DATA_SIZE   64
+#define CAN_PERIOD          10ms
 
 //********** INTERNAL CAN MESSAGES **********
 
