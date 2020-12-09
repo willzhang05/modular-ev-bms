@@ -300,6 +300,13 @@ void contactors_logic()
         discharge_contactor = 0;
     if(packStatus.PackCurrent < maxChargeCurrent)
         charge_contactor = 0;
+    for(int i = 0; i < NUM_CELL_NODES; ++i)
+    {
+        if(charge_estimation_state[i] == 5) // Fully Charged
+            charge_contactor = 0;
+        if(charge_estimation_state[i] == 6) // Fully Discharged
+            discharge_contactor = 0;
+    }
 }
 
 void cell_balancing_logic(){ //Cell balancing based on voltage
