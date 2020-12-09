@@ -40,8 +40,8 @@ float SOH[NUM_CELL_NODES];
 float DOD[NUM_CELL_NODES];
 
 float min_current_thresh = 0.001f; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
-float min_current_charging_thresh = 0.1f;
-float min_voltage_diff = 0.001f;
+float min_current_charging_thresh = 0.5f;
+float min_voltage_diff = 0.3f;
 float last_voltage[NUM_CELL_NODES];
 
 int constant_voltage_count = 0;
@@ -232,7 +232,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 5;
         }
         else{ // calculate DOD and SOC
-            DOD[index] = DOD[index] + ((current*dt)/rated_capacity * 100);
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -247,7 +247,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 6;
         }
         else{
-            DOD[index] = DOD[index] + ((current*dt)/rated_capacity * 100);
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
