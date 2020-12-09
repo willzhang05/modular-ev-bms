@@ -53,9 +53,9 @@ float dt = 1.0f/MAIN_LOOP_PERIOD_MS; //seconds
 float max_voltage = 4.2f;
 float min_voltage = 2.5f;
 
-int callibrate_length = 7;
-float voltage_callibrate [7] = {0, 2.5f, 2.8f, 3.3f, 3.6f, 4.2f, 10.0f};
-float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
+int callibrate_length = 9;
+float voltage_callibrate [9] = {0, 2.5f, 2.8f, 3.0f, 3.3f, 3.6f, 4.0f, 4.2f, 10.0f};
+float SOC_callibrate [9] = {0f, 0f, 7.2f, 11.6f, 34.8f, 62.3f, 100f, 100f, 100f};
 
 uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
 uint16_t cell_balancing_thresh = 100;      // units of 0.0001 V, the turn-on voltage difference for balancing
@@ -173,15 +173,20 @@ void test_sleep()
 }
 #endif //TESTING
 
-void init_cell_SOC(int index)
+void init_cell_SOC(int index, float voltage)
 {
     charge_estimation_state[index] = 0;
-    SOC[index] = 100.0;
     SOH[index] = 100.0;
-    DOD[index] = 0.0;
-    last_voltage[index] = 0.0;
+    for(int i =0;i<callibrate_length-1;i++){ //Voltage calibration
+        if(voltage>=voltage_callibrate[i] && voltage<=voltage_callibrate[i+1]){
+            float SOC_voltage = ((voltage-voltage_callibrate[i])*(SOC_callibrate[i+1]-SOC_callibrate[i])/(voltage_callibrate[i+1]-voltage_callibrate[i]))+SOC_callibrate[i]; //SOC based on voltage calibration
+            SOC[index] = SOC_voltage;
+            DOD[index] = SOH[index]-SOC[index];
+        }
+    }
+    last_voltage[index] = voltage;
 }
-
+//0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 void SOC_estimation_update(float current, float voltage, int index) //TODO: Check does positive current mean charging or discharging
 {
     if(charge_estimation_state[index]==0){ //Initial State
@@ -227,7 +232,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 5;
         }
         else{ // calculate DOD and SOC
-            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity * 100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -242,7 +247,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 6;
         }
         else{
-            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity * 100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -518,7 +523,7 @@ int main() {
     canInit();
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
-        init_cell_SOC(i);
+        init_cell_SOC(i, cell_voltages[i]);
     }
     discharge_contactor = 1;
     charge_contactor = 1;
