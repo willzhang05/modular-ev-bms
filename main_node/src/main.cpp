@@ -382,10 +382,6 @@ void fan_logic(){
 }
 
 float get_pack_voltage(){
-    // return (pack_volt.read())*VDD*(2+100)/2*10/15;
-    // return pack_volt.read()*VDD*12/0.3;
-    // return pack_volt.read()*12/0.089;
-
     float v = 0;
     for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
         v += pack_volt.read();
@@ -397,9 +393,7 @@ float get_pack_voltage(){
     PRINT("\r\n");
 #endif //TESTING
 
-    // v = v*12/0.09;
     // v = v*VDD*10/15*2222/22;
-    // v = v*8.4f/0.0268f;
     v = v*12/0.05f;
 
 #ifdef TESTING
@@ -413,9 +407,6 @@ float get_pack_voltage(){
 
 float get_pack_current()
 {
-    // return (pack_current.read()*VDD*2.5/2.14-2.5)*1000/1.5;
-    // return (pack_current.read()*2.5/0.658-2.5)*1000/1.5;
-
     float i = 0;
     for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
         i += pack_current.read();
@@ -430,16 +421,6 @@ float get_pack_current()
     PRINT("\r\n");
 #endif //TESTING
 
-    // i = (i*2.5/0.65-2.5)*1000/1.5;
-    // i = (i*1.65/0.5-1.65)*100/1.65;
-    // i = (i-0.65f)*VDD*100/1.65f;
-    // i = (i-0.52f)*VDD*100/1.65f;
-    // i = (i-zero_current_ADC)*VDD*100/1.65f;
-    // i = (i*2.5/zero_current_ADC-2.5)*1000/1.5;
-    // i = (i*1.65/zero_current_ADC-1.65)*100/1.65;
-    // i = (i*2.5/zero_current_ADC-2.5)*300/0.625;
-    // i = (i*1.65/zero_current_ADC-1.65)*300/0.625/11;
-    
     // i = (i-zero_current_ADC)*1.93/0.009;
     i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*VDD;
     
