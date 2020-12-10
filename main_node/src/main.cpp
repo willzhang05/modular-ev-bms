@@ -1,13 +1,16 @@
 #include <mbed.h>
 #include "pindef.h"
 #include "Printing.h"
+#include "CANStructs.h"
 
 // #define TESTING     // only defined if using test functions
+// #define DEBUGGING   // only define if debugging
 
-#define NUM_ADC_SAMPLES 10
-#define NUM_CELL_NODES  2
-#define NUM_PARALLEL_CELL 3
-// #define VDD 3.3f
+#define NUM_ADC_SAMPLES     10
+#define NUM_CELL_NODES      2   // also the number of cells in series
+#define NUM_PARALLEL_CELL   2
+#define VDD                 3.3f
+#define MAIN_LOOP_PERIOD_MS 10  // units of 1 ms
 
 BufferedSerial device(USBTX, USBRX);
 
@@ -27,35 +30,43 @@ DigitalOut intCanStby(INT_CAN_STBY);
 DigitalOut extCanStby(EXT_CAN_STBY);
 
 Ticker intCanTxTicker;
+
+Balancing balancing0to63;
+Balancing balancing64to127;
+PackStatus packStatus;
+
 int charge_estimation_state[NUM_CELL_NODES]; //0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 float SOC[NUM_CELL_NODES];
 float SOH[NUM_CELL_NODES];
 float DOD[NUM_CELL_NODES];
 
-float min_current_thresh = 0.001; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
-float min_current_charging_thresh = 0.1;
-float min_voltage_diff = 0.001;
+float min_current_thresh = 0.5f; // if current is < min_current_thresh and current > - min_current_thresh, current is essentially 0
+float min_current_charging_thresh = 0.5f;
+float min_voltage_diff = 0.001f;
 float last_voltage[NUM_CELL_NODES];
 
 int constant_voltage_count = 0;
-int constant_voltage_count_thresh = 5;
+int constant_voltage_count_thresh = 500;
 
-float rated_capacity = 12060*NUM_PARALLEL_CELL; //3350 mAh in Coulombs
-float dt = 0.1; //seconds
+float rated_capacity = 11800*NUM_PARALLEL_CELL; //3300 mAh in Coulombs
+float dt = MAIN_LOOP_PERIOD_MS/1000.0f; //seconds
 
-float max_voltage = 4.2;
-float min_voltage = 2.5;
+float max_voltage = 4.2f;
+float min_voltage = 2.5f;
 
-float VDD = 3.3;
+int callibrate_length = 9;
+float voltage_callibrate [9] = {0.0f, 2.5f, 2.8f, 3.0f, 3.3f, 3.6f, 4.0f, 4.2f, 10.0f};
+float SOC_callibrate [9] = {0.0f, 0.0f, 7.2f, 11.6f, 34.8f, 62.3f, 100.0f, 100.0f, 100.0f};
 
-int callibrate_length = 7;
-float voltage_callibrate [7] = {0, 2.5, 2.8, 3.3, 3.6, 4.2, 10};
-float SOC_callibrate [7] = {0, 0, 20, 80, 90, 100, 100};
+uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
+uint16_t cell_balancing_thresh = 100;       // units of 0.0001 V, the turn-on voltage difference for balancing
+int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
+int8_t temperature_thresh = 25;             // units of 1 deg C, the turn-on temperature for fans
+int8_t temperature_range = 20;              // units of 1 deg C, the temperature range for fans to reach max speed (max speed is at temp >= temperature_thresh+temperature_range)
 
-float cell_voltages[NUM_CELL_NODES];
-float cell_balancing_thresh = 0.3f;
-float cell_temperatures [NUM_CELL_NODES];
-float temperature_thresh = 30.0f;
+int16_t maxDischargeCurrent = 250*NUM_PARALLEL_CELL;    // units of 0.01 A
+int16_t maxChargeCurrent = -200*NUM_PARALLEL_CELL;      // units of 0.01 A
+
 float zero_current_ADC = 0.5f;  // the ADC value that represent 0A for the current sensor, calibrated at startup
 
 #ifdef TESTING
@@ -163,14 +174,21 @@ void test_sleep()
 
 }
 #endif //TESTING
-void init_cell_SOC(int index)
+
+void init_cell_SOC(int index, float voltage)
 {
     charge_estimation_state[index] = 0;
-    SOC[index] = 100.0;
     SOH[index] = 100.0;
-    DOD[index] = 0.0;
-    last_voltage[index] = 0.0;
+    for(int i =0;i<callibrate_length-1;i++){ //Voltage calibration
+        if(voltage>=voltage_callibrate[i] && voltage<=voltage_callibrate[i+1]){
+            float SOC_voltage = ((voltage-voltage_callibrate[i])*(SOC_callibrate[i+1]-SOC_callibrate[i])/(voltage_callibrate[i+1]-voltage_callibrate[i]))+SOC_callibrate[i]; //SOC based on voltage calibration
+            SOC[index] = SOC_voltage;
+            DOD[index] = SOH[index]-SOC[index];
+        }
+    }
+    last_voltage[index] = voltage;
 }
+//0: Initial State, 1: Transitional State, 2: Charge State, 3: Discharge State, 4: Equilibrium, 5: Fully Charged, 6: Fully Discharged
 void SOC_estimation_update(float current, float voltage, int index) //TODO: Check does positive current mean charging or discharging
 {
     if(charge_estimation_state[index]==0){ //Initial State
@@ -216,7 +234,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 5;
         }
         else{ // calculate DOD and SOC
-            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity*100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -231,7 +249,7 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
             charge_estimation_state[index] = 6;
         }
         else{
-            DOD[index] = DOD[index] + (current*dt)/rated_capacity;
+            DOD[index] = DOD[index] + ((current*dt)/rated_capacity*100);
             SOC[index] = SOH[index] - DOD[index];
         }
     }
@@ -276,8 +294,24 @@ void SOC_estimation_update(float current, float voltage, int index) //TODO: Chec
     }
     last_voltage[index] = voltage;
 }
+
+void contactors_logic()
+{
+    if(packStatus.PackCurrent > maxDischargeCurrent)
+        discharge_contactor = 0;
+    if(packStatus.PackCurrent < maxChargeCurrent)
+        charge_contactor = 0;
+    for(int i = 0; i < NUM_CELL_NODES; ++i)
+    {
+        if(charge_estimation_state[i] == 5) // Fully Charged
+            charge_contactor = 0;
+        if(charge_estimation_state[i] == 6) // Fully Discharged
+            discharge_contactor = 0;
+    }
+}
+
 void cell_balancing_logic(){ //Cell balancing based on voltage
-    float min_cell_voltage = cell_voltages[0];
+    uint16_t min_cell_voltage = cell_voltages[0];
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         if(cell_voltages[i] < min_cell_voltage){
@@ -288,16 +322,33 @@ void cell_balancing_logic(){ //Cell balancing based on voltage
     {
         if(cell_voltages[i] > (min_cell_voltage+cell_balancing_thresh)){
             //Turn cell balancing on
+            if(i < MAX_CAN_DATA_SIZE/2)
+                balancing0to63.ID_31_downto_0 |= 1 << i;
+            else if(i < MAX_CAN_DATA_SIZE)
+                balancing0to63.ID_63_downto_32 |= 1 << i;
+            else if(i < MAX_CAN_DATA_SIZE*3/4)
+                balancing64to127.ID_31_downto_0 |= 1 << (i-MAX_CAN_DATA_SIZE);
+            else
+                balancing64to127.ID_63_downto_32 |= 1 << (i-MAX_CAN_DATA_SIZE);
         }
         else{
             //turn cell balancing off
+            if(i < MAX_CAN_DATA_SIZE/2)
+                balancing0to63.ID_31_downto_0 &= ~(1 << i);
+            else if(i < MAX_CAN_DATA_SIZE)
+                balancing0to63.ID_63_downto_32 &= ~(1 << i);
+            else if(i < MAX_CAN_DATA_SIZE*3/4)
+                balancing64to127.ID_31_downto_0 &= ~(1 << (i-MAX_CAN_DATA_SIZE));
+            else
+                balancing64to127.ID_63_downto_32 &= ~(1 << (i-MAX_CAN_DATA_SIZE));
         }
     }
 }
 
 void fan_logic(){
     bool fanOn = false;
-    float max_cell_temp = cell_temperatures[0];
+    int8_t max_cell_temp = cell_temperatures[0];
+    int16_t sum_cell_temp = 0;
     for(int i = 0; i < NUM_CELL_NODES; ++i)
     {
         if(cell_temperatures[i] > temperature_thresh){
@@ -306,11 +357,16 @@ void fan_logic(){
         if(cell_temperatures[i] > max_cell_temp){
             max_cell_temp = cell_temperatures[i];
         }
+        sum_cell_temp += cell_temperatures[i];
     }
+
+    packStatus.PackMaxTemp = max_cell_temp;
+    packStatus.PackAvgTemp = (int8_t)(sum_cell_temp/NUM_CELL_NODES);
+
     if(fanOn)
     {
         fan_ctrl.write(1);
-        float fan_power = (max_cell_temp-max_cell_temp)/20; 
+        float fan_power = (max_cell_temp-temperature_thresh)/(float)(temperature_range); 
         if(fan_power > 1.0){
             fan_power = 1.0;
         }
@@ -326,99 +382,104 @@ void fan_logic(){
 }
 
 float get_pack_voltage(){
-    // return (pack_volt.read())*VDD*(2+100)/2*10/15;
-    // return pack_volt.read()*VDD*12/0.3;
-    // return pack_volt.read()*12/0.089;
-
     float v = 0;
     for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
         v += pack_volt.read();
     v /= NUM_ADC_SAMPLES;
 
+#ifdef TESTING
     PRINT("ADC pack voltage: ");
     printFloat(v, 5);
     PRINT("\r\n");
+#endif //TESTING
 
-    v = v*12/0.09;
+    // v = v*VDD*10/15*2222/22;
+    v = v*12/0.05f;
 
+#ifdef TESTING
     PRINT("Pack Voltage: ");
     printFloat(v, 2);
     PRINT(" V\r\n");
+#endif //TESTING
     
     return v;
 }
 
 float get_pack_current()
 {
-    // return (pack_current.read()*VDD*2.5/2.14-2.5)*1000/1.5;
-    // return (pack_current.read()*2.5/0.658-2.5)*1000/1.5;
-
     float i = 0;
     for (int j = 0; j < NUM_ADC_SAMPLES; ++j)
         i += pack_current.read();
     i /= NUM_ADC_SAMPLES;
     
+#ifdef TESTING
     PRINT("ADC pack current: ");
     printFloat(i, 5);
     PRINT("\r\n");
     PRINT("ADC pack current offset: ");
     printFloat(i-zero_current_ADC, 5);
     PRINT("\r\n");
+#endif //TESTING
 
-    // i = (i*2.5/0.65-2.5)*1000/1.5;
-    // i = (i*1.65/0.5-1.65)*100/1.65;
-    // i = (i-0.65f)*VDD*100/1.65f;
-    // i = (i-0.52f)*VDD*100/1.65f;
-    // i = (i-zero_current_ADC)*VDD*100/1.65f;
-    // i = (i*2.5/zero_current_ADC-2.5)*1000/1.5;
-    // i = (i*1.65/zero_current_ADC-1.65)*100/1.65;
-    // i = (i*2.5/zero_current_ADC-2.5)*300/0.625;
-    // i = (i*1.65/zero_current_ADC-1.65)*300/0.625/11;
-    
     // i = (i-zero_current_ADC)*1.93/0.009;
-    i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*3.3f;
+    i = (i-zero_current_ADC)*300/0.625f/(100/15+1)*VDD;
     
+#ifdef TESTING
     PRINT("Pack Current: ");
     printFloat(i, 2);
     PRINT(" A\r\n");
+#endif //TESTING
 
     return i;
 }
 
-// WARNING: This method is NOT safe to call in an ISR context (if RTOS is enabled)
-// This method is Thread safe (CAN is Thread safe)
-bool sendCANMessage(const char *data, const unsigned char len = 8)
+void parseCANMessage(const CANMessage& msg)
 {
-    if (len > 8 || !intCan.write(CANMessage(2, data, len)))
-        return false;
-
-    return true;
-}
-
-// WARNING: This method will be called in an ISR context
-void canTxIrqHandler()
-{
-    string toSend = "MainSend";
-    if (sendCANMessage(toSend.c_str(), toSend.length()))
+    uint8_t messagePriority = GET_PRIORITY(msg.id);
+    uint8_t messageNodeID = GET_NODE_ID(msg.id);
+    if(messagePriority == 2)
     {
-        PRINT("Message sent: %s\r\n", toSend.c_str()); // This should be removed except for testing CAN
+        CellData* cellData = (CellData*)msg.data;
+        cell_voltages[messageNodeID-1] = cellData->CellVolt;
+        cell_temperatures[messageNodeID-1] = cellData->CellTemp;
+#ifdef TESTING
+        PRINT("Received data for Cell %d\r\n", messageNodeID);
+        PRINT("Cell %d Voltage: ", messageNodeID);
+        printIntegerAsFloat(cellData->CellVolt, 4);
+        PRINT("\r\nCell %d Temperature: %d\r\n", messageNodeID, cellData->CellTemp);
+#endif //TESTING
     }
 }
 
 // WARNING: This method will be called in an ISR context
-void canRxIrqHandler()
+void intCanTxIrqHandler()
+{
+    if (intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,0), (char*)&balancing0to63, sizeof(balancing0to63))) &&
+        intCan.write(CANMessage(GET_CAN_MESSAGE_ID(0,1), (char*)&balancing64to127, sizeof(balancing64to127))))
+    {
+#ifdef TESTING
+        PRINT("Message sent!\r\n");
+#endif //TESTING
+    }
+}
+
+// WARNING: This method will be called in an ISR context
+void intCanRxIrqHandler()
 {
     CANMessage receivedCANMessage;
     while (intCan.read(receivedCANMessage))
     {
-        PRINT("Message received: %s\r\n", receivedCANMessage.data); // This should be changed to copying the CAN data to a global variable, except for testing CAN
+#ifdef TESTING
+        PRINT("Message received!\r\n");
+#endif //TESTING
+        parseCANMessage(receivedCANMessage);
     }
 }
 
 void canInit()
 {
-    intCanTxTicker.attach(&canTxIrqHandler, 1s);
-    intCan.attach(&canRxIrqHandler, CAN::RxIrq);
+    intCanTxTicker.attach(&intCanTxIrqHandler, CAN_PERIOD);
+    intCan.attach(&intCanRxIrqHandler, CAN::RxIrq);
     intCanStby = 0;
 }
 
@@ -431,9 +492,11 @@ void currentSensorInit()
 
     zero_current_ADC = i;
 
+#ifdef TESTING
     PRINT("Calibrated Current sensor to ADC value of: ");
     printFloat(zero_current_ADC, 5);
     PRINT("\r\n");
+#endif //TESTING
 }
 
 int main() {
@@ -443,23 +506,105 @@ int main() {
     HAL_DBGMCU_EnableDBGStopMode();
 
     // device.set_baud(38400);
+#ifdef TESTING
     PRINT("start main() \n\r");
+#endif //TESTING
 
     canInit();
+    discharge_contactor = 1;
+    charge_contactor = 1;
     thread_sleep_for(2000);
     currentSensorInit();
+    for(int i = 0; i < NUM_CELL_NODES; ++i)
+    {
+        init_cell_SOC(i, cell_voltages[i]*0.0001f);
+#ifdef DEBUGGING
+        PRINT("Cell %d Initial SOC: ", i+1);
+        printFloat(SOC[i], 1);
+        PRINT("%%\r\n");
+#endif //DEBUGGING
+    }
+    
+    int mainLoopCount = 0;
 
     while(1){
-        PRINT("main thread loop\r\n");
 #ifdef TESTING
+        if(mainLoopCount == 0)
+            PRINT("main thread loop\r\n");
         test_point_0 = test_point_0 ^ 1;
         test_pack_voltage(0, 1);
         test_pack_current(0, 1);
         // test_fan_output();
 #endif //TESTING
-        get_pack_voltage();
-        get_pack_current();
-        thread_sleep_for(1000);
-        PRINT("\r\n");
+        packStatus.PackVolt = (uint16_t)(get_pack_voltage()*100);
+        packStatus.PackCurrent = (int16_t)(get_pack_current()*100);
+
+        contactors_logic();
+        fan_logic();
+        cell_balancing_logic();
+        
+        float sumSOC = 0, sumSOH = 0;
+        for(int i = 0; i < NUM_CELL_NODES; ++i)
+        {
+            SOC_estimation_update(packStatus.PackCurrent*0.01f, cell_voltages[i]*0.0001f, i);
+            sumSOC += SOC[i];
+            sumSOH += SOH[i];
+        }
+        packStatus.SOC = (uint8_t)round(sumSOC/NUM_CELL_NODES*2);
+        packStatus.SOH = (uint8_t)round(sumSOH/NUM_CELL_NODES*2);
+
+        if(mainLoopCount == 0)
+        {
+            // print all BMS info for the user (what would be in the PC program)
+            // Pack Data
+            PRINT("Pack SOC: ");
+            printIntegerAsFloat(((uint16_t)packStatus.SOC)*5, 1);
+            PRINT("%%  \t\t");
+            PRINT("Pack SOH: ");
+            printIntegerAsFloat(((uint16_t)packStatus.SOH)*5, 1);
+            PRINT("%%\r\n");
+            PRINT("Pack Voltage: ");
+            printIntegerAsFloat(packStatus.PackVolt, 2);
+            PRINT(" V\t\t");
+            PRINT("Pack Current: ");
+            printIntegerAsFloat(packStatus.PackCurrent, 2);
+            PRINT(" A\r\n");
+            PRINT("Pack High Temp: %d deg C\t", packStatus.PackMaxTemp);
+            PRINT("Pack Avg Temp: %d deg C\r\n", packStatus.PackAvgTemp);
+            
+            // Cell Data
+            for(int i = 0; i < NUM_CELL_NODES; ++i)
+            {
+                PRINT("Cell Node %d: ", i+1);
+                printIntegerAsFloat(cell_voltages[i], 4);
+                PRINT(" V\t");
+#ifdef DEBUGGING
+                PRINT("SOC: ");
+                printFloat(SOC[i], 1);
+                PRINT("%%\t");
+                PRINT("State: %d\t", charge_estimation_state[i]);
+#endif //DEBUGGING
+                if(i < MAX_CAN_DATA_SIZE/2)
+                    PRINT("Balancing %s\r\n", (balancing0to63.ID_31_downto_0 >> i)&1 ? "ON":"OFF");
+                else if(i < MAX_CAN_DATA_SIZE)
+                    PRINT("Balancing %s\r\n", (balancing0to63.ID_63_downto_32 >> (i-MAX_CAN_DATA_SIZE/2))&1 ? "ON":"OFF");
+                else if(i < MAX_CAN_DATA_SIZE*3/2)
+                    PRINT("Balancing %s\r\n", (balancing64to127.ID_31_downto_0 >> (i-MAX_CAN_DATA_SIZE))&1 ? "ON":"OFF");
+                else
+                    PRINT("Balancing %s\r\n", (balancing64to127.ID_63_downto_32 >> (i-MAX_CAN_DATA_SIZE*3/2))&1 ? "ON":"OFF");
+            }
+            PRINT("\r\n");
+            PRINT("\r\n");
+        }
+
+        thread_sleep_for(MAIN_LOOP_PERIOD_MS);
+        
+#ifdef TESTING
+        if(mainLoopCount == 0)
+            PRINT("\r\n");
+#endif //TESTING
+
+        if(++mainLoopCount >= 1000/MAIN_LOOP_PERIOD_MS)
+            mainLoopCount = 0;
     }
 }
