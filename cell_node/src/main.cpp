@@ -5,13 +5,6 @@
 
 // #define TESTING // only defined when using test functions
 
-// This uses a lot of ROM!!!
-// BufferedSerial device(USBTX, USBRX, 38400);
-// int temperature_length = 8;
-// float t_voltage_output [8] = {1.299, 1.034, 0.925, 0.871, 0.816, 0.760, 0.476, 0.183};
-// float temperature [8] = {-50, 0, 20, 30, 40, 50, 100, 150};
-// DigitalOut* led2;
-
 #define MAIN_LOOP_PERIOD 10
 
 CAN* can1;
@@ -162,19 +155,6 @@ void canInit() {
 
 
 //********** Cell Measurements **********
-// float get_cell_temperature(){
-//     float t_voltage = cell_temp.read()*VDD;
-//     for(int i =0;i<temperature_length-1;i++){ //Voltage calibration
-//         if(t_voltage>=t_voltage_output[i] && t_voltage<=t_voltage_output[i+1]){
-//             return ((t_voltage-t_voltage_output[i])*(temperature[i+1]-temperature[i])/(t_voltage_output[i+1]-t_voltage_output[i]))+temperature[i]; //SOC based on voltage calibration
-//         }
-//     }
-//     return -100.0;
-// }
-// float get_cell_voltage(){
-//     float v = cell_volt.read()*VDD*(18+33)/33;
-//     return v;
-// }
 
 int16_t get_cell_temperature() {
     float t_direct = cell_temp.read();
