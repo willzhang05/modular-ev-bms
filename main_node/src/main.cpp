@@ -62,7 +62,7 @@ uint16_t cell_voltages[NUM_CELL_NODES];     // units of 0.0001 V
 uint16_t cell_balancing_thresh = 100;       // units of 0.0001 V, the turn-on voltage difference for balancing
 int8_t cell_temperatures [NUM_CELL_NODES];  // units of 1 deg C
 int8_t temperature_thresh = 25;             // units of 1 deg C, the turn-on temperature for fans
-int8_t temperature_range = 10;              // units of 1 deg C, the temperature range for fans to reach max speed (max speed is at temp >= temperature_thresh+temperature_range)
+int8_t temperature_range = 20;              // units of 1 deg C, the temperature range for fans to reach max speed (max speed is at temp >= temperature_thresh+temperature_range)
 
 int16_t maxDischargeCurrent = 250*NUM_PARALLEL_CELL;    // units of 0.01 A
 int16_t maxChargeCurrent = -200*NUM_PARALLEL_CELL;      // units of 0.01 A
